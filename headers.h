@@ -26,7 +26,7 @@ typedef struct file_header file_header;
 struct file
 {
     int prev;
-    int end_of_block;
+    int end_of_block;// signifies the end of the current block and not necessarily the EOF
     int next;
 };
 
