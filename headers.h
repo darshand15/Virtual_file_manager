@@ -25,9 +25,9 @@ typedef struct file_header file_header;
 
 struct file
 {
-    int prev;
+    int prev; // offset to a previous block which can either be a different file or part of the same file
     int end_of_block;// signifies the end of the current block and not necessarily the EOF
-    int next;
+    int next; //offset to the next block which can either be a different file or part of the same file
 };
 
 typedef struct file file;
