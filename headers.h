@@ -6,7 +6,7 @@
 
 struct mem_space
 {
-    int size; // size of the page which is allocated - this is our memory space
+    int free_size; //available bytes in the page
     int files; //offset to the first file header
     int free_head; //offset to the first available empty chunk of bytes
 
