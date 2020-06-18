@@ -4,6 +4,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<limits.h>
 
 struct mem_space
 {
@@ -34,5 +35,15 @@ struct file
 };
 
 typedef struct file file;
+
+struct book_keeper
+{
+    int prev;//offset to the previous book keeping structure
+    int next;//offset to the next book keeping structure
+    int size;//size of the block signified by the book keeping structure
+    char alloc_f;//holds 'a' if the block is already allocated and 'f' if its free
+};
+
+typedef struct book_keeper book_keeper;
 
 #endif

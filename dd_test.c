@@ -10,9 +10,15 @@ void init_space(void *temp, int n)
         return;
     }
     mem_space *m = (mem_space*)temp;
-    m->free_size = n - sizeof(mem_space);
+    m->free_size = n - sizeof(mem_space) - sizeof(book_keeper);
     m->files = -1;
     m->free_head = -1;
+
+    book_keeper *bk = (book_keeper*)(temp + sizeof(mem_space));
+    bk->next = -1;
+    bk->prev = -1;
+    bk->size = m->free_size;
+    bk->alloc_f = 'f';
 
 }
 
@@ -21,12 +27,80 @@ void init_manager(void *temp)
     init_space(temp,1000);
 }
 
+int best_fit(void *temp,int req_size)
+{
+    mem_space *m = (mem_space*)temp;
+    book_keeper *trav;
+    book_keeper *bk1,*bk2;
+    
+    int flag_wbk = 0;
+    int flag_wobk = 0;
+    int min_size_wbk = INT_MAX;
+    int min_size_wobk = INT_MAX;
+    int off = sizeof(mem_space);
+    int off_wbk, off_wobk;
+
+    while(off!=-1)
+    {
+        trav = (book_keeper*)(temp + off);
+       
+        if(trav->alloc_f == 'f' && trav->size > (req_size + sizeof(book_keeper)) && trav->size < min_size_wbk)
+        {
+            flag_wbk = 1;
+            flag_wobk = 0;
+            min_size_wbk = trav->size;
+            bk1 = trav;
+            off_wbk = off;
+        }
+        else if(flag_wbk==0 && trav->alloc_f == 'f' && trav->size>=req_size && trav->size<(req_size + sizeof(book_keeper)) && trav->size<min_size_wobk)
+        {
+            flag_wobk = 1;
+            min_size_wobk = trav->size;
+            bk2 = trav;
+            off_wobk = off;
+
+        }
+        off = trav->next;
+    }
+    
+    if(flag_wbk==1 && flag_wobk==0)
+    {
+        int init_size = bk1->size;
+        bk1->alloc_f = 'a';
+        bk1->size = req_size;
+        book_keeper *bk3 = (book_keeper*)(temp + off_wbk + sizeof(book_keeper) + req_size);
+        bk3->next = bk1->next;
+        bk3->prev = off_wbk;
+        if(bk1->next!=-1)
+        {
+            book_keeper *bk4 = (book_keeper*)(temp + bk1->next);
+            bk4->prev = off_wbk + sizeof(book_keeper) + req_size;
+        }
+        bk1->next = off_wbk + sizeof(book_keeper) + req_size;
+        bk3->alloc_f = 'f';
+        bk3->size = init_size - req_size - sizeof(book_keeper); 
+        return (off_wbk + sizeof(book_keeper));
+
+    }
+    else if(flag_wobk==1 && flag_wbk==0)
+    {        
+        bk2->alloc_f = 'a';
+        return (off_wobk + sizeof(book_keeper));
+    }
+    else if(flag_wobk==0 && flag_wbk==0)
+    {
+        return -1;
+    }
+
+}
+
+
 void create_file(const char* file_name, void *temp)
 {
     mem_space *m = (mem_space*)temp;
-    if(m->files==-1)
+    if(m->files==-1 && sizeof(file_header)>(m->free_size))
     {
-        m->files = sizeof(mem_space);
+        m->files = sizeof(mem_space) + sizeof(book_keeper);
         file_header *fh = (file_header*)(temp + m->files);
 
         int f_n_len = strlen(file_name);
@@ -66,6 +140,9 @@ void create_file(const char* file_name, void *temp)
         fh->end_offset = -1;
         fh->next = -1;
         fh->prev = -1;
+
+        book_keeper *bk1 = (book_keeper*)(temp + sizeof(mem_space));
+        //book_keeper *bk2 = (book_keeper*)(temp + )
         m->free_size = m->free_size - sizeof(file_header);
         m->free_head = sizeof(mem_space) + sizeof(file_header);
     }
