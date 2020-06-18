@@ -3,6 +3,7 @@
 
 #include<stdio.h>
 #include<stdlib.h>
+#include<string.h>
 
 struct mem_space
 {
@@ -16,10 +17,12 @@ typedef struct mem_space mem_space;
 
 struct file_header
 {
-    int file_id; //unique id to identify the file
+    char *file_id; //unique name to identify the file
     char *file_type; 
     int start_offset; 
     int end_offset; //signifies the EOF
+    int prev; //offset to the previous file header
+    int next; //offset to the next file header
 };
 typedef struct file_header file_header;
 
