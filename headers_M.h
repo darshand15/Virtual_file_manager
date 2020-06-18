@@ -7,10 +7,13 @@
 
 struct mem_space
 {
-    int size; // size of the page which is allocated - this is our memory space
-    int size_free;
+    int size; // size of the page/block
+    int alloc; // 1 if the block is allocated
     int file_offset; //offset to the first file header
     int free_head; //offset to the first available empty chunk of bytes
+    int next; //offset to the next mem_space structure
+   // int prev; //offset to the previous mem_space structure
+    int current_offset; // offset of the current structure
 
 };
 
