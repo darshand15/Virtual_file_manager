@@ -10,7 +10,7 @@ struct mem_space
 {
     int free_size; //available bytes in the page
     int files; //offset to the first file header
-    int free_head; //offset to the first available empty chunk of bytes
+    //int free_head; //offset to the first available empty chunk of bytes
 
 };
 
@@ -18,8 +18,8 @@ typedef struct mem_space mem_space;
 
 struct file_header
 {
-    char *file_id; //unique name to identify the file
-    char *file_type; 
+    char file_id[32]; //unique name to identify the file
+    char file_type[8]; 
     int start_offset; 
     int end_offset; //signifies the EOF
     int prev; //offset to the previous file header
@@ -45,5 +45,17 @@ struct book_keeper
 };
 
 typedef struct book_keeper book_keeper;
+
+int file_exists(const char* file_name);
+
+void init_space(char **temp, int n);
+
+void init_manager();
+
+int best_fit(FILE *fp,int req_size);
+
+void create_file(const char* file_name);
+
+void print_file_structure();
 
 #endif
