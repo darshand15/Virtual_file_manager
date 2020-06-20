@@ -56,6 +56,9 @@ int best_fit(FILE *fp,int req_size);
 
 void create_file(const char* file_name);
 
+void insert_into_file(const char* file_name,char *content,char mode);
+//mode is 'a' if append, 'w' if write mode
+
 void print_file_structure();
 
 #endif

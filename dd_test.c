@@ -318,6 +318,180 @@ void create_file(const char* file_name)
      
 }
 
+void insert_into_file(const char* file_name ,char* content ,char mode)
+{
+    FILE *fp = fopen("file_manager.dat","rb+");
+    mem_space m;
+    fseek(fp,0,SEEK_SET);
+    fread(&m,sizeof(mem_space),1,fp);
+    int req_size = strlen(content);
+
+    if(m.free_size < (req_size + sizeof(file)))
+    {
+        printf("no space available\n");
+        return;
+    }
+
+    if(m.files==-1)
+    {
+        return;
+    }
+
+    int res = best_fit(fp,req_size + sizeof(file));
+
+    if(res!=-1)
+    {
+        file_header fh;
+
+        int f_n_len = strlen(file_name);
+        int flag = 1;
+        int len_n,len_ext;
+        len_n = 0;
+        while(flag && len_n<f_n_len)
+        {
+            if(file_name[len_n]=='.')
+            {
+                flag = 0;
+            }
+            else
+            {
+                len_n++;
+            }
+            
+        }
+        char *name = (char*)malloc((len_n+1)*sizeof(char));
+        int co;
+        for(co = 0;co<len_n;co++)
+        {    
+            name[co] = file_name[co];       
+        }
+        name[len_n] = '\0';
+        len_ext = f_n_len - len_n;
+        char *ext = (char*)malloc(len_ext*sizeof(char));
+        for(co = co+1;co<f_n_len;co++)
+        {
+            ext[co - len_n - 1] = file_name[co];
+        }
+        ext[len_ext - 1] = '\0';
+
+        
+
+        int flag2 = 0;
+        int off = m.files;
+        int tar_off;
+
+        while(flag2==0 && off!=-1)
+        {
+            fseek(fp,off,SEEK_SET);
+            fread(&fh,sizeof(file_header),1,fp);
+            
+            if(strcmp(fh.file_id,name)==0 && strcmp(fh.file_type,ext)==0)
+            {
+                flag2 = 1;
+                tar_off = off;
+            }
+
+            off = fh.next;
+        }
+
+        if(flag2==0)
+        {
+            return;
+        }
+
+        if(mode=='w')
+        {
+            /*call delete_file fn that frees up all the file blocks allocated for this 
+            particular file
+            */
+
+           file f;
+           f.next = -1;
+           f.prev = -1;
+           f.end_of_block = res + sizeof(file) + req_size;
+
+           fh.start_offset = res;
+           fh.end_offset = f.end_of_block;
+           
+           fseek(fp,res,SEEK_SET);
+           fwrite(&f,sizeof(file),1,fp);
+
+           fseek(fp,res + sizeof(file),SEEK_SET);
+           fwrite(content,req_size,1,fp);
+
+           fseek(fp,tar_off,SEEK_SET);
+           fwrite(&fh,sizeof(file_header),1,fp);
+           return;
+        }
+
+        else if(mode=='a')
+        {
+            if(fh.start_offset==-1)
+            {
+                file f;
+                f.next = -1;
+                f.prev = -1;
+                f.end_of_block = res + sizeof(file) + req_size;
+
+                fh.start_offset = res;
+                fh.end_offset = f.end_of_block;
+
+                fseek(fp,res,SEEK_SET);
+                fwrite(&f,sizeof(file),1,fp);
+
+                fseek(fp,res + sizeof(file),SEEK_SET);
+                fwrite(content,req_size,1,fp);
+
+                fseek(fp,tar_off,SEEK_SET);
+                fwrite(&fh,sizeof(file_header),1,fp);
+                return;
+            }
+
+            else
+            {
+                file trav;
+                int off_f = fh.start_offset;
+                int off_f_p = 0;
+
+                while(off_f!=-1)
+                {
+                    fseek(fp,off_f,SEEK_SET);
+                    fread(&trav,sizeof(file),1,fp);
+                    off_f_p = off_f;
+                    off_f = trav.next;
+                }
+
+                file f;
+                f.prev = off_f_p;
+                f.next = -1;
+                f.end_of_block = res + sizeof(file) + req_size;
+                fseek(fp,res,SEEK_SET);
+                fwrite(&f,sizeof(file),1,fp);
+                fseek(fp,res + sizeof(file),SEEK_SET);
+                fwrite(content,req_size,1,fp);
+
+                trav.next = res;
+                fseek(fp,off_f_p,SEEK_SET);
+                fwrite(&trav,sizeof(file),1,fp);
+
+                fh.end_offset = f.end_of_block;
+                fseek(fp,tar_off,SEEK_SET);
+                fwrite(&fh,sizeof(file_header),1,fp);
+
+
+
+            }
+            
+        }
+
+    /* if a block that can accomodate the entire content is not found, then the content
+    is divided into chunks and allocated in different file blocks
+    */
+
+    }
+
+}
+
 void print_file_structure()
 {
     FILE *fp = fopen("file_manager.dat","rb");
