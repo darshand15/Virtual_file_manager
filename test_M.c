@@ -28,7 +28,7 @@ void init_manager()
         fclose(fp);
         fp = fopen(filename,"rb+");
         mem_space m;
-        m.size = 1000 - sizeof(mem_space);
+        m.size = 1000 - sizeof(mem_space) - sizeof(bk);
         m.file_offset = -1;
         fseek(fp, 0, SEEK_SET);
         fwrite(&m, sizeof(mem_space), 1, fp);
@@ -196,7 +196,7 @@ void create_file(const char* filename, const char* filetype)
         fseek(fp, c_file_offset, SEEK_SET);
         fwrite(&file_h, sizeof(file_header), 1, fp);
     }
-    m.size = m.size - r_size;
+    m.size -= (r_size + sizeof(bk));
     fseek(fp, 0, SEEK_SET);
     fwrite(&m, sizeof(mem_space), 1, fp);
 
@@ -267,7 +267,9 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
                 printf("\n file contents printed\n");
                 break;
             case 'w':
-                // delete_all_fb(f_head);
+                fclose(fp);
+                delete_all_fb(f_head);
+                fp = fopen("file_manager.dat", "rb+");
                 offset_file = f_head.start_offset;
                 file f;
                 f.next = -1;
@@ -288,8 +290,6 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
                 f.end_of_block = offset_cb + sizeof(bk) + r_size;
                 f_head.end_offset = f.end_of_block;
                 f_head.start_offset = offset_cb + sizeof(bk);
-
-
 
                 if(block.size > (r_size + sizeof(bk)))
                 {
@@ -317,6 +317,12 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
 
                 fseek(fp, offset_file + sizeof(file), SEEK_SET);
                 fwrite(s, sizeof(char), t_size, fp);
+
+                fseek(fp, 0, SEEK_SET);
+                fread(&m, sizeof(mem_space), 1, fp);
+                m.size -= (r_size + sizeof(bk));
+                fseek(fp, 0, SEEK_SET);
+                fwrite(&m, sizeof(mem_space), 1, fp);
                 break;
             case 'a':
                 printf("\n IN APPEND OFFSET:%d\n", offset_file);
@@ -390,6 +396,10 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
 
                     fseek(fp, offset_file + sizeof(file), SEEK_SET);
                     fwrite(s, sizeof(char), t_size, fp);
+
+                    m.size -= (r_size + sizeof(bk));
+                    fseek(fp, 0, SEEK_SET);
+                    fwrite(&m, sizeof(mem_space), 1, fp);
                 }
                 break;
             default:break;
@@ -410,9 +420,55 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
         return;
     }
     fclose(fp);
+}
+void delete_all_fb(file_header f_head)
+{
+    if(f_head.start_offset == -1)
+    {
+        return;
+    }
+    else
+    {   
+        FILE * fp = fopen("file_manager.dat", "rb+");
+        file f;
+        bk b;
+        int offset_file = f_head.start_offset;
+        while(offset_file != -1)
+        {   
+            printf("\nIN DELETE\n");
+            int offset_bk = offset_file - sizeof(bk);
+            fseek(fp, offset_file, SEEK_SET);
+            fread(&f, sizeof(file), 1, fp);
+
+            fseek(fp, offset_bk, SEEK_SET);
+            fread(&b, sizeof(bk), 1, fp);
+            b.alloc = 0;
+            fseek(fp, offset_bk, SEEK_SET);
+            fwrite(&b, sizeof(bk), 1, fp);
+
+            mem_space m;
+            fseek(fp, 0, SEEK_SET);
+            fread(&m, sizeof(mem_space), 1, fp);
+            m.size += b.size + sizeof(bk);
+            printf("\n%d\n", m.size);
+            fseek(fp, 0, SEEK_SET);
+            fwrite(&m, sizeof(mem_space), 1, fp);
+
+            offset_file = f.next;
+        }
+        fclose(fp);
+    }
     
+}
 
-
+void free_space()
+{
+    FILE * fp = fopen("file_manager.dat", "r");
+    mem_space m;
+    fseek(fp, 0, SEEK_SET);
+    fread(&m, sizeof(mem_space), 1, fp);
+    printf("\n FREE SPACE: %d\n", m.size);
+    fclose(fp);
 }
 void print_file_structure()
 {

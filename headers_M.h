@@ -55,5 +55,7 @@ void create_file(const char* filename, const char* filetype);
 void insert_into_file(const char* filename, const char* filetype, char* temp);
 void print_file_structure();
 void create_f_b(file_header f_head, int r_size);
+void delete_all_fb(file_header f_head);
 void edit_file(const char* filename, const char* filetype, char* s, char mode);
+void free_space();
 #endif

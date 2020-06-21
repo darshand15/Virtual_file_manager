@@ -7,7 +7,7 @@ int main()
     init_manager();
     while(1)
     {
-        printf("1. Create File\n2. Print the current file structure\n3. Edit\n");
+        printf("1. Create File\n2. Print the current file structure\n3. Edit\n4. Free Space\n");
         scanf("%d", &c);
         char *file_name = malloc(sizeof(char)*25);
         char *file_ext = malloc(sizeof(char)*8);
@@ -47,7 +47,9 @@ int main()
             }
             
             break;
-        
+        case 4:
+            free_space();
+            break;
         default:
             break;
         }            
