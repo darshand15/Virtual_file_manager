@@ -11,9 +11,6 @@ struct mem_space
 {
     int size; // size of the page/block
     int file_offset; //offset to the first file header
-    int free_head; //offset to the first available empty chunk of bytes
-    int current_offset; // offset of the current structure
-
 };
 
 typedef struct mem_space mem_space;
@@ -57,4 +54,6 @@ bk worst_block(FILE* fp, int r_size);
 void create_file(const char* filename, const char* filetype);
 void insert_into_file(const char* filename, const char* filetype, char* temp);
 void print_file_structure();
+void create_f_b(file_header f_head, int r_size);
+void edit_file(const char* filename, const char* filetype, char* s, char mode);
 #endif
