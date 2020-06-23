@@ -89,7 +89,8 @@ int best_fit(FILE *fp,int req_size)
     {
         fseek(fp,off,SEEK_SET);
         fread(&trav,sizeof(book_keeper),1,fp);
-       
+
+        //finding the best fit block that can accomdate both the content and another book keeper
         if(trav.alloc_f == 'f' && trav.size > (req_size + sizeof(book_keeper)) && trav.size < min_size_wbk)
         {
             flag_wbk = 1;
@@ -98,6 +99,7 @@ int best_fit(FILE *fp,int req_size)
             bk1 = trav;
             off_wbk = off;
         }
+        //finding the best fit block that can only accomodate the content but not another book keeper
         else if(flag_wbk==0 && trav.alloc_f == 'f' && trav.size>=req_size && trav.size<(req_size + sizeof(book_keeper)) && trav.size<min_size_wobk)
         {
             flag_wobk = 1;
@@ -111,18 +113,18 @@ int best_fit(FILE *fp,int req_size)
     
     if(flag_wbk==1 && flag_wobk==0)
     {
+        //best fit block that accomodates both the content and another book keeper
+
         int init_size = bk1.size;
         bk1.alloc_f = 'a';
         bk1.size = req_size;
 
         book_keeper bk3;
 
-        //book_keeper *bk3 = (book_keeper*)(temp + off_wbk + sizeof(book_keeper) + req_size);
         bk3.next = bk1.next;
         bk3.prev = off_wbk;
         if(bk1.next!=-1)
         {
-            //book_keeper *bk4 = (book_keeper*)(temp + bk1->next);
             book_keeper bk4;
             fseek(fp,bk1.next,SEEK_SET);
             fread(&bk4,sizeof(book_keeper),1,fp);
@@ -149,6 +151,9 @@ int best_fit(FILE *fp,int req_size)
     }
     else if(flag_wobk==1 && flag_wbk==0)
     {        
+        //best fit block that only accomodates the content
+        //the remaining bytes are left in this block itself
+
         bk2.alloc_f = 'a';
         fseek(fp,off_wobk,SEEK_SET);
         fwrite(&bk2,sizeof(book_keeper),1,fp);
@@ -161,6 +166,7 @@ int best_fit(FILE *fp,int req_size)
     }
     else if(flag_wobk==0 && flag_wbk==0)
     {
+        //no block that can accomodate the required data is available
         return -1;
     }
 
@@ -170,10 +176,7 @@ int best_fit(FILE *fp,int req_size)
 
 int largest_available_block(FILE *fp)
 {
-    // mem_space m;
-    // fseek(fp,0,SEEK_SET);
-    // fread(&m,sizeof(mem_space),1,fp);
-
+    
     book_keeper trav;
     int off = sizeof(mem_space);
     int max_off;
@@ -225,9 +228,7 @@ void create_file(const char* file_name)
         }
 
         m.files = res;
-        //file_header *fh = (file_header*)(temp + m->files);
         file_header fh;
-
 
         int f_n_len = strlen(file_name);
         int flag = 1;
@@ -260,10 +261,8 @@ void create_file(const char* file_name)
         }
         ext[len_ext - 1] = '\0';
 
-        //fh.file_id = name;
         strcpy(fh.file_id,name);
         fh.start_offset = -1;
-        //fh.file_type = ext;
         strcpy(fh.file_type,ext);
         fh.end_offset = -1;
         fh.next = -1;
@@ -287,7 +286,6 @@ void create_file(const char* file_name)
             return;
         }
 
-        //file_header *fh = (file_header*)(temp + res);
         file_header fh;
 
         int f_n_len = strlen(file_name);
@@ -321,12 +319,9 @@ void create_file(const char* file_name)
         }
         ext[len_ext - 1] = '\0';
 
-        //fh.file_id = name;
         strcpy(fh.file_id,name);
-        //fh.file_type = ext;
         strcpy(fh.file_type,ext);
 
-        //file_header *trav = (file_header*)(temp + m->files);
         file_header trav;
         fseek(fp,m.files,SEEK_SET);
         fread(&trav,sizeof(file_header),1,fp);
@@ -336,7 +331,6 @@ void create_file(const char* file_name)
         while(trav.next!=-1)
         {
             off = trav.next;
-            //trav = (file_header*)(temp + trav->next);
             fseek(fp,off,SEEK_SET);
             fread(&trav,sizeof(file_header),1,fp);
         }
@@ -416,7 +410,7 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
 
         
 
-        int flag2 = 0;
+        int flag2 = 0; //flag to know if the required file header is found
         int off = m.files;
         int tar_off;
 
@@ -441,9 +435,8 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
 
         if(mode=='w')
         {
+           //previously allocated file blocks of this file are deleted and freed 
            int succ = del_file(file_name,1);
-           //printf("%d\n",res);
-
 
            file f;
            f.next = -1;
@@ -531,25 +524,8 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
     /* if a block that can accomodate the entire content is not found, then the content
     is divided into chunks and allocated in different file blocks
     */
-
-   else
-   {
-    //    int large_b_off;
-    //    int n = strlen(content);
-    //    book_keeper trav;
-
-    //    while(n!=0)
-    //    {
-    //        large_b_off = largest_available_block(fp);
-    //        fseek(fp,large_b_off,SEEK_SET);
-    //        fread(&trav,sizeof(book_keeper),1,fp);
-
-    //        file f1;
-
-
-
-    //    }
-
+    else
+    {
         file_header fh;
 
         int f_n_len = strlen(file_name);
@@ -583,7 +559,6 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
         }
         ext[len_ext - 1] = '\0';
 
-        
 
         int flag2 = 0;
         int off = m.files;
@@ -621,6 +596,11 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
             book_keeper trav;
             int i = 0;
             int end;
+
+            /*flag to know if the content remaining after the first allocation to 
+            the largest available block can be allocated directly using best fit algo
+            or not
+            */
             int flag3 = 0;
             int fprev;
 
@@ -986,8 +966,7 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
                         fseek(fp,tar_off,SEEK_SET);
                         fwrite(&fh,sizeof(file_header),1,fp);
 
-                    }
-                    
+                    }    
 
                 }
             }
@@ -997,11 +976,8 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
             
         }
 
-
-   }
-
+    }
     
-
 }
 
 /*del_mode has the value 0 if everything including the file contents and 
@@ -1072,8 +1048,6 @@ int del_file(const char* file_name,int del_mode)
         //file doesn't exist
         return -1;
     } 
-
-    
 
     if(del_mode==1)
     {
@@ -1242,14 +1216,12 @@ void read_file(const char* file_name)
         return;
     } 
 
-    int off_f = fh.start_offset;
-    //printf("%d\n",off_f);
-    
+    int off_f = fh.start_offset;    
     file f;
+    printf("\nFile content:\n");
 
     while(off_f!=-1)
     {
-        //printf("test\n");
         fseek(fp,off_f,SEEK_SET);
         fread(&f,sizeof(file),1,fp);
 
@@ -1276,7 +1248,6 @@ void print_file_structure()
     mem_space m;
     fseek(fp,0,SEEK_SET);
     fread(&m,sizeof(mem_space),1,fp);
-    //printf("%d\n",m.files);
     
     if(m.files==-1)
     {
@@ -1287,13 +1258,9 @@ void print_file_structure()
     file_header trav;
     fseek(fp,m.files,SEEK_SET);
     fread(&trav,sizeof(file_header),1,fp);
-    //printf("%d\n",trav.end_offset);
-
 
     while(trav.next!=-1)
     {
-        //printf("test2\n");
-
         printf("file name: %s, file type: %s \n",trav.file_id,trav.file_type);
         fseek(fp,trav.next,SEEK_SET);
         fread(&trav,sizeof(file_header),1,fp);
