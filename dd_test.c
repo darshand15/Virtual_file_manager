@@ -220,6 +220,7 @@ void create_file(const char* file_name)
         if(res==-1)
         {
             printf("no space available\n");
+            fclose(fp);
             return;
         }
 
@@ -282,6 +283,7 @@ void create_file(const char* file_name)
         if(res==-1)
         {
             printf("no space available\n");
+            fclose(fp);
             return;
         }
 
@@ -440,6 +442,8 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
         if(mode=='w')
         {
            int succ = del_file(file_name,1);
+           //printf("%d\n",res);
+
 
            file f;
            f.next = -1;
@@ -457,6 +461,7 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
 
            fseek(fp,tar_off,SEEK_SET);
            fwrite(&fh,sizeof(file_header),1,fp);
+           fclose(fp);
            return;
         }
 
@@ -480,6 +485,7 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
 
                 fseek(fp,tar_off,SEEK_SET);
                 fwrite(&fh,sizeof(file_header),1,fp);
+                fclose(fp);
                 return;
             }
 
@@ -514,7 +520,7 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
                 fseek(fp,tar_off,SEEK_SET);
                 fwrite(&fh,sizeof(file_header),1,fp);
 
-
+                fclose(fp);
 
             }
             
@@ -608,7 +614,7 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
         if(mode=='w')
         {
             int succ = del_file(file_name,1);
-            
+
             int large_b_off,res2,l_b_off_2;
             int n = strlen(content);
             int old_n;
@@ -726,6 +732,8 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
                 
 
             }
+            fclose(fp);
+            return;
         }
 
         else if(mode=='a')
@@ -983,13 +991,16 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
 
                 }
             }
+
+            fclose(fp);
+            return;
             
         }
 
 
    }
 
-    fclose(fp);
+    
 
 }
 
@@ -1069,6 +1080,7 @@ int del_file(const char* file_name,int del_mode)
         if(fh.start_offset==-1)
         {
             //file has no contents
+            fclose(fp);
             return 0;
         }
 
@@ -1160,7 +1172,102 @@ int del_file(const char* file_name,int del_mode)
         fwrite(&m,sizeof(mem_space),1,fp);
 
     }
+    fclose(fp);
     return 1;
+}
+
+void read_file(const char* file_name)
+{
+    FILE *fp = fopen("file_manager.dat","rb");
+    mem_space m;
+    fseek(fp,0,SEEK_SET);
+    fread(&m,sizeof(mem_space),1,fp);
+
+    file_header fh;
+
+    int f_n_len = strlen(file_name);
+    int flag = 1;
+    int len_n,len_ext;
+    len_n = 0;
+    while(flag && len_n<f_n_len)
+    {
+        if(file_name[len_n]=='.')
+        {
+            flag = 0;
+        }
+        else
+        {
+            len_n++;
+        }
+        
+    }
+    char *name = (char*)malloc((len_n+1)*sizeof(char));
+    int co;
+    for(co = 0;co<len_n;co++)
+    {    
+        name[co] = file_name[co];       
+    }
+    name[len_n] = '\0';
+    len_ext = f_n_len - len_n;
+    char *ext = (char*)malloc(len_ext*sizeof(char));
+    for(co = co+1;co<f_n_len;co++)
+    {
+        ext[co - len_n - 1] = file_name[co];
+    }
+    ext[len_ext - 1] = '\0';
+    
+    int flag2 = 0;
+    int off = m.files;
+    int tar_off;
+
+    while(flag2==0 && off!=-1)
+    {
+        fseek(fp,off,SEEK_SET);
+        fread(&fh,sizeof(file_header),1,fp);
+        
+        if(strcmp(fh.file_id,name)==0 && strcmp(fh.file_type,ext)==0)
+        {
+            flag2 = 1;
+            tar_off = off;
+        }
+
+        off = fh.next;
+    }
+
+    if(flag2==0)
+    {
+        //file doesn't exist
+        printf("file doesn't exist\n");
+        fclose(fp);
+        return;
+    } 
+
+    int off_f = fh.start_offset;
+    //printf("%d\n",off_f);
+    
+    file f;
+
+    while(off_f!=-1)
+    {
+        //printf("test\n");
+        fseek(fp,off_f,SEEK_SET);
+        fread(&f,sizeof(file),1,fp);
+
+        int size = f.end_of_block - (off_f + sizeof(file));
+        char *content = (char*)malloc((size+1)*(sizeof(char)));
+        content[size] = '\0';
+        
+        fseek(fp,off_f + sizeof(file),SEEK_SET);
+        fread(content,size,1,fp);
+        printf("%s\n",content);
+
+        off_f = f.next;
+
+    }
+
+    fclose(fp);
+    return;
+
 }
 
 void print_file_structure()

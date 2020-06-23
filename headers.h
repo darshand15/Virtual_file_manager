@@ -67,5 +67,6 @@ int del_file(const char* file_name,int del_mode);
 //del_mode has the value 0 if everything including the file contents and the file header has to be deleted
 //del_mode has the value 1 if only the file contents has to be deleted and the file header isn't
 
+void read_file(const char* file_name);
 
 #endif
