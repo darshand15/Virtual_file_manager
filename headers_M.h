@@ -50,12 +50,14 @@ typedef struct file file;
 int exists(const char *fname);
 void init_space(char** temp, int n);
 void init_manager();
-bk worst_block(FILE* fp, int r_size);
+int worst_block(FILE* fp, int r_size);
 void create_file(const char* filename, const char* filetype);
 void insert_into_file(const char* filename, const char* filetype, char* temp);
 void print_file_structure();
 void create_f_b(file_header f_head, int r_size);
 void delete_all_fb(file_header f_head);
 void edit_file(const char* filename, const char* filetype, char* s, char mode);
+void delete_file(const char* filename, const char* filetype);
+void delete_fb(int offset_f);
 void free_space();
 #endif

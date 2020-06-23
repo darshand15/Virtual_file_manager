@@ -7,7 +7,7 @@ int main()
     init_manager();
     while(1)
     {
-        printf("1. Create File\n2. Print the current file structure\n3. Edit\n4. Free Space\n");
+        printf("1. Create File\n2. Print the current file structure\n3. Edit\n4. Free Space Left\n5. Delete File\n");
         scanf("%d", &c);
         char *file_name = malloc(sizeof(char)*25);
         char *file_ext = malloc(sizeof(char)*8);
@@ -50,6 +50,12 @@ int main()
         case 4:
             free_space();
             break;
+        case 5:
+            printf("\nEnter File Name: ");
+            scanf("%s", file_name);
+            printf("\nEnter File Ext: ");
+            scanf("%s", file_ext);
+            delete_file(file_name, file_ext);
         default:
             break;
         }            

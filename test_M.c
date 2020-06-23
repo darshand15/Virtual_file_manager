@@ -45,7 +45,7 @@ void init_manager()
     
 }
 
-bk worst_block(FILE* fp, int r_size) 
+int worst_block(FILE* fp, int r_size) 
 {  
     // Initialise a pointer to the head mem_space
     mem_space head_mem_space;
@@ -54,6 +54,8 @@ bk worst_block(FILE* fp, int r_size)
     /* Get largest unallocated block in list*/
  
     bk index, max;
+    int offset_cb = -1;
+    int offset_index = sizeof(mem_space);
     int max_flag = 0;
     printf("\n\n%d\n\n", sizeof(mem_space));
     fseek(fp, sizeof(mem_space), SEEK_SET);
@@ -62,8 +64,16 @@ bk worst_block(FILE* fp, int r_size)
     // printf("\nIN WB\n %d %d %d %d\n", index.alloc, index.next, index.prev, index.size);
 
     if(index.next == -1)
-    {
-        return index;
+    {   
+        if(index.size >= r_size)
+        {        
+            return offset_index;
+        }
+        else
+        {
+            return -1;
+        }
+        
     }
     else
     {   
@@ -74,15 +84,18 @@ bk worst_block(FILE* fp, int r_size)
         else
         {
             max = index;
+            offset_cb = offset_index;
         }
         
         do
-        {
+        {   
+            offset_index = index.next;
             fseek(fp, index.next, SEEK_SET);
             fread(&index, sizeof(bk), 1, fp);
             if(!(index.alloc) && (index.size > max.size) ) // if unallocated and size is greater than max size
             {
                 max = index;
+                offset_cb = offset_index;
                 max_flag = 1;
             }
             // index = (bk*)(temp + index.next);
@@ -96,11 +109,11 @@ bk worst_block(FILE* fp, int r_size)
 
     if(max_flag && max.size >= r_size)     // return max block only if the size is greater than the required size
     {
-        return max;
+        return offset_cb;
     } 
     else
     {
-        //TO DO
+        return -1;
     }
 }
 
@@ -111,19 +124,11 @@ void create_file(const char* filename, const char* filetype)
     fseek(fp, 0, SEEK_SET);
     fread(&m, sizeof(mem_space), 1, fp);
     int r_size = sizeof(file_header);
-    bk block = worst_block(fp, r_size);
-    int offset_cb;
-    if(block.prev == -1)
-    {
-        offset_cb = sizeof(mem_space);
-    }
-    else
-    {
-        bk prev_block;
-        fseek(fp, block.prev, SEEK_SET);
-        fread(&prev_block, sizeof(bk), 1, fp);
-        offset_cb = prev_block.next;
-    }
+
+    int offset_cb = worst_block(fp, r_size);
+    bk block;
+    fseek(fp, offset_cb, SEEK_SET);
+    fread(&block, sizeof(bk), 1, fp);
     
     if(block.size > (r_size + sizeof(bk)))
     {
@@ -224,7 +229,7 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
         fclose(fp);
         return;
     }
-    if(m.size > (r_size + sizeof(bk)))  // Assumes only one file block required
+    if(m.size > (r_size))  // Only one file block required
     {
         file_header f_head;
         fseek(fp, m.file_offset, SEEK_SET);
@@ -270,12 +275,14 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
                 fclose(fp);
                 delete_all_fb(f_head);
                 fp = fopen("file_manager.dat", "rb+");
-                offset_file = f_head.start_offset;
+                f_head.start_offset = -1;
                 file f;
                 f.next = -1;
                 f.prev = -1;
-                bk block = worst_block(fp, r_size);
-                int offset_cb;
+                int offset_cb = worst_block(fp, r_size);
+                bk block;
+                fseek(fp, offset_cb, SEEK_SET);
+                fread(&block, sizeof(bk), 1, fp);
                 if(block.prev == -1)
                 {
                     offset_cb = sizeof(mem_space);
@@ -345,11 +352,13 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
                     file p_f;
                     fseek(fp, offset_p_f, SEEK_SET);
                     fread(&p_f, sizeof(file), 1, fp);
-                    bk block = worst_block(fp, r_size);
+                    int offset_cb = worst_block(fp, r_size);
+                    bk block;
+                    fseek(fp, offset_cb, SEEK_SET);
+                    fread(&block, sizeof(bk), 1, fp);
                     file f;
                     f.next = -1;
                     f.prev = offset_p_f;
-                    int offset_cb;
                     if(block.prev == -1)
                     {
                         offset_cb = sizeof(mem_space);
@@ -449,7 +458,7 @@ void delete_all_fb(file_header f_head)
             mem_space m;
             fseek(fp, 0, SEEK_SET);
             fread(&m, sizeof(mem_space), 1, fp);
-            m.size += b.size + sizeof(bk);
+            m.size += b.size;
             printf("\n%d\n", m.size);
             fseek(fp, 0, SEEK_SET);
             fwrite(&m, sizeof(mem_space), 1, fp);
@@ -458,7 +467,102 @@ void delete_all_fb(file_header f_head)
         }
         fclose(fp);
     }
+}
+void delete_file(const char* filename, const char* filetype)
+{
+    file_header f_head;
+    FILE* fp = fopen("file_manager.dat","rb+");
+    mem_space m;
+    fseek(fp, 0, SEEK_SET);
+    fread(&m, sizeof(mem_space), 1, fp);
+    fseek(fp, m.file_offset, SEEK_SET);
+    fread(&f_head, sizeof(file_header), 1, fp);
+    int found = 0, offset_f_h = m.file_offset;
+    while(f_head.next != -1)
+    {
+        if(!strcmp(f_head.file_name, filename) && !strcmp(f_head.file_type, filetype))
+        {
+            found = 1;
+            break;
+        }
+        offset_f_h = f_head.next;
+        fseek(fp, f_head.next, SEEK_SET);
+        fread(&f_head, sizeof(file_header), 1, fp);
+    }
+    if(!strcmp(f_head.file_name, filename) && !strcmp(f_head.file_type, filetype))
+    {
+            found = 1;
+    }
+    if(found)
+    {
+        delete_all_fb(f_head);
+        bk fh_block;
+        fseek(fp, offset_f_h - sizeof(bk), SEEK_SET);
+        fread(&fh_block, sizeof(bk), 1, fp);
+
+        fh_block.alloc = 0;
+
+        fseek(fp, offset_f_h - sizeof(bk), SEEK_SET);
+        fwrite(&fh_block, sizeof(bk), 1, fp);
+
+        if(f_head.prev != -1)
+        {
+            file_header prev_f_head;
+            int offset_p_f_h = f_head.prev;
+            fseek(fp, offset_p_f_h, SEEK_SET);
+            fread(&prev_f_head, sizeof(file_header), 1, fp);
+            prev_f_head.next = f_head.next;
+            fseek(fp, offset_p_f_h, SEEK_SET);
+            fwrite(&prev_f_head, sizeof(file_header), 1, fp);
+        }
+        if(f_head.next != -1)
+        {   
+            file_header next_f_head;
+            int offset_n_f_h = f_head.next;
+            fseek(fp, offset_n_f_h, SEEK_SET);
+            fread(&next_f_head, sizeof(file_header), 1, fp);
+            next_f_head.prev = f_head.prev;
+            fseek(fp, offset_n_f_h, SEEK_SET);
+            fwrite(&next_f_head, sizeof(file_header), 1, fp);
+        }
+
+        if(m.file_offset == offset_f_h)
+        {
+            m.file_offset = f_head.next;
+        }
+        m.size += fh_block.size;
+        printf("\n%d\n", m.size);
+        fseek(fp, 0, SEEK_SET);
+        fwrite(&m, sizeof(mem_space), 1, fp);
+        fclose(fp);
+    }
+    else
+    {
+        printf("\nNo such file present\n");
+        fclose(fp);
+        return;
+    }
     
+}
+
+void delete_fb(int offset_f)
+{
+    FILE* fp = fopen("file_manager.dat", "rb+");
+    bk block;
+    fseek(fp, offset_f - sizeof(bk), SEEK_SET);
+    fread(&block, sizeof(bk), 1, fp);
+    block.alloc = 0;
+
+    mem_space m;
+    fseek(fp, 0, SEEK_SET);
+    fread(&m, sizeof(mem_space), 1, fp);
+    m.size += block.size;
+    printf("\n%d\n", m.size);
+    fseek(fp, 0, SEEK_SET);
+    fwrite(&m, sizeof(mem_space), 1, fp);
+
+    fclose(fp);
+
 }
 
 void free_space()
