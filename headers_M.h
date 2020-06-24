@@ -59,5 +59,7 @@ void delete_all_fb(file_header f_head);
 void edit_file(const char* filename, const char* filetype, char* s, char mode);
 void delete_file(const char* filename, const char* filetype);
 void delete_fb(int offset_f);
+int no_of_free_blocks();
+int size_of_free_blocks();
 void free_space();
 #endif
