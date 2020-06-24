@@ -372,7 +372,7 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
                         fseek(fp, offset_p_f, SEEK_SET);
                         fwrite(&f, sizeof(f), 1, fp);
 
-                        fseek(fp, offset_p_f + sizeof(file), fp);
+                        fseek(fp, offset_p_f + sizeof(file), SEEK_SET);
                         fwrite(text, sizeof(char), block_t_size, fp);
                         o += block_t_size;
 
@@ -601,23 +601,19 @@ void delete_file(const char* filename, const char* filetype)
     mem_space m;
     fseek(fp, 0, SEEK_SET);
     fread(&m, sizeof(mem_space), 1, fp);
-    fseek(fp, m.file_offset, SEEK_SET);
-    fread(&f_head, sizeof(file_header), 1, fp);
+    // fseek(fp, m.file_offset, SEEK_SET);
+    // fread(&f_head, sizeof(file_header), 1, fp);
     int found = 0, offset_f_h = m.file_offset;
-    while(f_head.next != -1)
-    {
+    while(offset_f_h != -1)
+    {   
+        fseek(fp, offset_f_h, SEEK_SET);
+        fread(&f_head, sizeof(file_header), 1, fp);
         if(!strcmp(f_head.file_name, filename) && !strcmp(f_head.file_type, filetype))
         {
             found = 1;
             break;
         }
         offset_f_h = f_head.next;
-        fseek(fp, f_head.next, SEEK_SET);
-        fread(&f_head, sizeof(file_header), 1, fp);
-    }
-    if(!strcmp(f_head.file_name, filename) && !strcmp(f_head.file_type, filetype))
-    {
-            found = 1;
     }
     if(found)
     {
