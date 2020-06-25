@@ -39,7 +39,7 @@ void init_space(char **temp, int n)
 void init_manager()
 {
     char *fname = "file_manager.dat";
-    int page_size = 1000;
+    int page_size = 332;
     if(file_exists(fname)==0)
     {
         char *temp;
@@ -68,9 +68,10 @@ void init_manager()
     
 }
 
-int best_fit(FILE *fp,int req_size)
+int best_fit(int req_size)
 {
-
+    printf("%d\n",req_size);
+    FILE *fp = fopen("file_manager.dat","rb+");
     mem_space m;
     fseek(fp,0,SEEK_SET);
     fread(&m,sizeof(mem_space),1,fp);
@@ -146,6 +147,7 @@ int best_fit(FILE *fp,int req_size)
         fseek(fp,off_wbk + sizeof(book_keeper) + req_size,SEEK_SET);
         fwrite(&bk3,sizeof(book_keeper),1,fp);
 
+        fclose(fp);
         return (off_wbk + sizeof(book_keeper));
 
     }
@@ -162,21 +164,23 @@ int best_fit(FILE *fp,int req_size)
         fseek(fp,0,SEEK_SET);
         fwrite(&m,sizeof(mem_space),1,fp);
 
+        fclose(fp);
         return (off_wobk + sizeof(book_keeper));
     }
     else if(flag_wobk==0 && flag_wbk==0)
     {
         //no block that can accomodate the required data is available
+        fclose(fp);
         return -1;
     }
-
+    fclose(fp);
     return -1;
 
 }
 
-int largest_available_block(FILE *fp)
+int largest_available_block()
 {
-    
+    FILE *fp = fopen("file_manager.dat","rb+");
     book_keeper trav;
     int off = sizeof(mem_space);
     int max_off;
@@ -205,6 +209,7 @@ int largest_available_block(FILE *fp)
     fseek(fp,max_off,SEEK_SET);
     fwrite(&l,sizeof(book_keeper),1,fp);
 
+    fclose(fp);
 
     return max_off;
 }
@@ -219,7 +224,7 @@ void create_file(const char* file_name)
 
     if(m.files==-1 && sizeof(file_header)<(m.free_size))
     {
-        int res = best_fit(fp,sizeof(file_header));
+        int res = best_fit(sizeof(file_header));
         if(res==-1)
         {
             printf("no space available\n");
@@ -278,7 +283,7 @@ void create_file(const char* file_name)
 
     else if(sizeof(file_header)<m.free_size)
     {
-        int res = best_fit(fp,sizeof(file_header));
+        int res = best_fit(sizeof(file_header));
         if(res==-1)
         {
             printf("no space available\n");
@@ -371,7 +376,7 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
         return;
     }
 
-    int res = best_fit(fp,req_size + sizeof(file));
+    int res = best_fit(req_size + sizeof(file));
 
     if(res!=-1)
     {
@@ -526,6 +531,7 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
     */
     else
     {
+        printf("test1\n");
         file_header fh;
 
         int f_n_len = strlen(file_name);
@@ -604,9 +610,13 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
             int flag3 = 0;
             int fprev;
 
-            while(n!=0)
+            printf("%d\n",n);
+
+            while(n!=0 && n>0)
             {
-                large_b_off = largest_available_block(fp);
+                printf("test2\n");
+                large_b_off = largest_available_block();
+                printf("%d %d\n",large_b_off,n);
                 fseek(fp,large_b_off,SEEK_SET);
                 fread(&trav,sizeof(book_keeper),1,fp);
 
@@ -657,9 +667,13 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
                 fseek(fp,large_b_off + sizeof(book_keeper),SEEK_SET);
                 fwrite(&f1,sizeof(file),1,fp);
 
+                fclose(fp);
+                fp = fopen("file_manager.dat","rb+");
 
 
-                res2 = best_fit(fp,n + sizeof(file));
+
+                res2 = best_fit(n + sizeof(file));
+                printf("%d\n",res2);
 
                 if(res2==-1)
                 {
@@ -677,39 +691,50 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
                     f3.next = -1;
                     f3.prev = large_b_off + sizeof(book_keeper);
                     f3.end_of_block = res2 + sizeof(file) + old_n;
+                    printf("test3\n");
                     fseek(fp,res2,SEEK_SET);
                     fwrite(&f3,sizeof(file),1,fp);
+                    printf("test4\n");
 
                     end = old_n + i;
+                    printf("%d %d",end,i);
 
                     char *content_3 = (char*)malloc((old_n + 1)*sizeof(char));
                     int j2 = 0;
 
                     while(i<end)
                     {
+                        printf("test5\n");
                         content_3[j2] = content[i];
                         i++;
                         j2++;
                     }
 
                     content_3[end] = '\0';
+                    printf("%s",content_3);
 
                     fseek(fp,res2 + sizeof(file),SEEK_SET);
                     fwrite(content_3,old_n,1,fp);
+                    printf("test6\n");
 
                     file f4;
                     fseek(fp,large_b_off + sizeof(book_keeper),SEEK_SET);
                     fread(&f4,sizeof(file),1,fp);
+                    printf("test7\n");
                     f4.next = res2;
                     fseek(fp,large_b_off + sizeof(book_keeper),SEEK_SET);
                     fwrite(&f4,sizeof(file),1,fp);
+                    printf("test8\n");
 
                     fh.end_offset = f3.end_of_block;
                     fseek(fp,tar_off,SEEK_SET);
                     fwrite(&fh,sizeof(file_header),1,fp);
+                    printf("test9\n");
 
                 }
-                
+
+                fclose(fp);
+                fp = fopen("file_manager.dat","rb+");
 
             }
             fclose(fp);
@@ -729,9 +754,9 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
                 int flag3  = 0;
                 int fprev;
 
-                while(n!=0)
+                while(n!=0 && n>0)
                 {
-                    large_b_off = largest_available_block(fp);
+                    large_b_off = largest_available_block();
                     fseek(fp,large_b_off,SEEK_SET);
                     fread(&trav,sizeof(book_keeper),1,fp);
 
@@ -782,9 +807,10 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
                     fseek(fp,large_b_off + sizeof(book_keeper),SEEK_SET);
                     fwrite(&f1,sizeof(file),1,fp);
 
+                    fclose(fp);
+                    fp = fopen("file_manager.dat","rb+");
 
-
-                    res2 = best_fit(fp,n + sizeof(file));
+                    res2 = best_fit(n + sizeof(file));
 
                     if(res2==-1)
                     {
@@ -834,6 +860,9 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
                         fwrite(&fh,sizeof(file_header),1,fp);
 
                     }
+
+                    fclose(fp);
+                    fp = fopen("file_manager.dat","rb+");
                     
 
                 }
@@ -862,9 +891,9 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
                     off_f = trav_f.next;
                 }
 
-                while(n!=0)
+                while(n!=0 && n>0)
                 {
-                    large_b_off = largest_available_block(fp);
+                    large_b_off = largest_available_block();
                     fseek(fp,large_b_off,SEEK_SET);
                     fread(&trav,sizeof(book_keeper),1,fp);
 
@@ -917,7 +946,10 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
                     fseek(fp,large_b_off + sizeof(book_keeper),SEEK_SET);
                     fwrite(&f1,sizeof(file),1,fp);
 
-                    res2 = best_fit(fp,n + sizeof(file));
+                    fclose(fp);
+                    fp = fopen("file_manager.dat","rb+");
+
+                    res2 = best_fit(n + sizeof(file));
 
                     if(res2==-1)
                     {
@@ -969,9 +1001,13 @@ void insert_into_file(const char* file_name ,char* content ,char mode)
                     }    
 
                 }
+
+                fclose(fp);
+                fp = fopen("file_manager.dat","rb+");
             }
 
             fclose(fp);
+            
             return;
             
         }
@@ -1059,17 +1095,65 @@ int del_file(const char* file_name,int del_mode)
         }
 
         int off_f = fh.start_offset;
-        book_keeper trav;
+        book_keeper trav,trav_n,trav_p;
         file f;
+        
 
         while(off_f!=-1)
         {
             fseek(fp,off_f - sizeof(book_keeper),SEEK_SET);
             fread(&trav,sizeof(book_keeper),1,fp);
-            trav.alloc_f = 'f';
             m.free_size = m.free_size + trav.size;
+
+            if(trav.next!=-1)
+            {
+                fseek(fp,trav.next,SEEK_SET);
+                fread(&trav_n,sizeof(book_keeper),1,fp);
+                
+                if(trav_n.alloc_f=='f')
+                {
+                    trav.size = trav.size + trav_n.size + sizeof(book_keeper);
+                    trav.next = trav_n.next;
+                    if(trav_n.next!=-1)
+                    {
+                        book_keeper trav_nn;
+                        fseek(fp,trav_n.next,SEEK_SET);
+                        fread(&trav_nn,sizeof(book_keeper),1,fp);
+                        trav_nn.prev = off_f - sizeof(book_keeper);
+                        fseek(fp,trav_n.next,SEEK_SET);
+                        fwrite(&trav_nn,sizeof(book_keeper),1,fp);
+                    }
+
+                }
+            }
+            trav.alloc_f = 'f';
+            
             fseek(fp,off_f - sizeof(book_keeper),SEEK_SET);
             fwrite(&trav,sizeof(book_keeper),1,fp);
+
+            if(trav.prev!=-1)
+            {
+                fseek(fp,trav.prev,SEEK_SET);
+                fread(&trav_p,sizeof(book_keeper),1,fp);
+
+                if(trav_p.alloc_f=='f')
+                {
+                    trav_p.size = trav_p.size + trav.size + sizeof(book_keeper);
+                    trav_p.next = trav.next;
+                    if(trav.next!=-1)
+                    {
+                        book_keeper trav_pn;
+                        fseek(fp,trav.next,SEEK_SET);
+                        fread(&trav_pn,sizeof(book_keeper),1,fp);
+                        trav_pn.prev = trav.prev;
+                        fseek(fp,trav.next,SEEK_SET);
+                        fwrite(&trav_pn,sizeof(book_keeper),1,fp);
+                    }
+
+                    fseek(fp,trav.prev,SEEK_SET);
+                    fwrite(&trav_p,sizeof(book_keeper),1,fp);
+                }
+            }
 
             fseek(fp,off_f,SEEK_SET);
             fread(&f,sizeof(file),1,fp);
@@ -1086,17 +1170,64 @@ int del_file(const char* file_name,int del_mode)
         if(fh.start_offset!=-1)
         {
             int off_f = fh.start_offset;
-            book_keeper trav;
+            book_keeper trav,trav_n,trav_p;
             file f;
 
             while(off_f!=-1)
             {
                 fseek(fp,off_f - sizeof(book_keeper),SEEK_SET);
                 fread(&trav,sizeof(book_keeper),1,fp);
-                trav.alloc_f = 'f';
                 m.free_size = m.free_size + trav.size;
+
+                if(trav.next!=-1)
+                {
+                    fseek(fp,trav.next,SEEK_SET);
+                    fread(&trav_n,sizeof(book_keeper),1,fp);
+                    
+                    if(trav_n.alloc_f=='f')
+                    {
+                        trav.size = trav.size + trav_n.size + sizeof(book_keeper);
+                        trav.next = trav_n.next;
+                        if(trav_n.next!=-1)
+                        {
+                            book_keeper trav_nn;
+                            fseek(fp,trav_n.next,SEEK_SET);
+                            fread(&trav_nn,sizeof(book_keeper),1,fp);
+                            trav_nn.prev = off_f - sizeof(book_keeper);
+                            fseek(fp,trav_n.next,SEEK_SET);
+                            fwrite(&trav_nn,sizeof(book_keeper),1,fp);
+                        }
+
+                    }
+                }
+                trav.alloc_f = 'f';
+                
                 fseek(fp,off_f - sizeof(book_keeper),SEEK_SET);
                 fwrite(&trav,sizeof(book_keeper),1,fp);
+
+                if(trav.prev!=-1)
+                {
+                    fseek(fp,trav.prev,SEEK_SET);
+                    fread(&trav_p,sizeof(book_keeper),1,fp);
+
+                    if(trav_p.alloc_f=='f')
+                    {
+                        trav_p.size = trav_p.size + trav.size + sizeof(book_keeper);
+                        trav_p.next = trav.next;
+                        if(trav.next!=-1)
+                        {
+                            book_keeper trav_pn;
+                            fseek(fp,trav.next,SEEK_SET);
+                            fread(&trav_pn,sizeof(book_keeper),1,fp);
+                            trav_pn.prev = trav.prev;
+                            fseek(fp,trav.next,SEEK_SET);
+                            fwrite(&trav_pn,sizeof(book_keeper),1,fp);
+                        }
+
+                        fseek(fp,trav.prev,SEEK_SET);
+                        fwrite(&trav_p,sizeof(book_keeper),1,fp);
+                    }
+                }
 
                 fseek(fp,off_f,SEEK_SET);
                 fread(&f,sizeof(file),1,fp);
@@ -1134,14 +1265,60 @@ int del_file(const char* file_name,int del_mode)
         }
         
 
-        book_keeper b1;
+        book_keeper b1,b1_n,b1_p;
         fseek(fp,tar_off - sizeof(book_keeper),SEEK_SET);
         fread(&b1,sizeof(book_keeper),1,fp);
+        m.free_size = m.free_size + b1.size;
+
+        if(b1.next!=-1)
+        {
+            fseek(fp,b1.next,SEEK_SET);
+            fread(&b1_n,sizeof(book_keeper),1,fp);
+
+            if(b1_n.alloc_f=='f')
+            {
+                b1.size = b1.size + b1_n.size + sizeof(book_keeper);
+                b1.next = b1_n.next;
+                if(b1_n.next!=-1)
+                {
+                    book_keeper b1_nn;
+                    fseek(fp,b1_n.next,SEEK_SET);
+                    fread(&b1_nn,sizeof(book_keeper),1,fp);
+                    b1_nn.prev = tar_off - sizeof(book_keeper);
+                    fseek(fp,b1_n.next,SEEK_SET);
+                    fwrite(&b1_nn,sizeof(book_keeper),1,fp);
+                }
+            }
+        }
+
         b1.alloc_f = 'f';
         fseek(fp,tar_off - sizeof(book_keeper),SEEK_SET);
         fwrite(&b1,sizeof(book_keeper),1,fp);
 
-        m.free_size = m.free_size + b1.size;
+        if(b1.prev!=-1)
+        {
+            fseek(fp,b1.prev,SEEK_SET);
+            fread(&b1_p,sizeof(book_keeper),1,fp);
+
+            if(b1_p.alloc_f=='f')
+            {
+                b1_p.size = b1_p.size + b1.size + sizeof(book_keeper);
+                b1_p.next = b1.next;
+                if(b1.next!=-1)
+                {
+                    book_keeper b1_pn;
+                    fseek(fp,b1.next,SEEK_SET);
+                    fread(&b1_pn,sizeof(book_keeper),1,fp);
+                    b1_pn.prev = b1.prev;
+                    fseek(fp,b1.next,SEEK_SET);
+                    fwrite(&b1_pn,sizeof(book_keeper),1,fp);
+                }
+
+                fseek(fp,b1.prev,SEEK_SET);
+                fwrite(&b1_p,sizeof(book_keeper),1,fp);
+            }
+        }
+
         fseek(fp,0,SEEK_SET);
         fwrite(&m,sizeof(mem_space),1,fp);
 
@@ -1269,5 +1446,25 @@ void print_file_structure()
     printf("file name: %s, file type: %s \n",trav.file_id,trav.file_type);
     fclose(fp);
 
+}
+
+void print_bk()
+{
+    FILE *fp = fopen("file_manager.dat","rb+");
+    book_keeper trav;
+    int off_bk = sizeof(mem_space);
+
+    while(off_bk!=-1)
+    {
+        fseek(fp,off_bk,SEEK_SET);
+        fread(&trav,sizeof(book_keeper),1,fp);
+
+        printf("%c, %d\n",trav.alloc_f,trav.size);
+
+        off_bk = trav.next;
+    }
+
+    fclose(fp);
+    
 }
 

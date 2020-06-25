@@ -4,10 +4,11 @@ int main()
 {
     int c;
     //printf("%lu\n\n",sizeof(int));
+    printf("%lu %lu %lu %lu",sizeof(mem_space),sizeof(file_header),sizeof(file),sizeof(book_keeper));
     init_manager();
     while(1)
     {
-        printf("\n1. Create File\n2. Print the current file structure\n3. Insert into file\n4. Read file\n5. Delete File\n6. Exit\n\n");
+        printf("\n1. Create File\n2. Print the current file structure\n3. Insert into file\n4. Read file\n5. Delete File\n6. print bk structure\n7. Exit\n\n");
         scanf("%d", &c);
         switch (c)
         {
@@ -60,6 +61,10 @@ int main()
             }
             free(file_name4);
             break;
+
+        case 6:
+            print_bk();
+            break;
         
         default:
             return 0;
@@ -67,3 +72,6 @@ int main()
     }
     
 }
+
+//char *a = "abcdefghijklmnopqrstuvwxyz";
+//abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz0123456789abc

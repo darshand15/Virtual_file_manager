@@ -52,7 +52,7 @@ void init_space(char **temp, int n);
 
 void init_manager();
 
-int best_fit(FILE *fp,int req_size);
+int best_fit(int req_size);
 
 void create_file(const char* file_name);
 
@@ -61,12 +61,14 @@ void insert_into_file(const char* file_name,char *content,char mode);
 
 void print_file_structure();
 
-int largest_available_block(FILE *fp);
+int largest_available_block();
 
 int del_file(const char* file_name,int del_mode);
 //del_mode has the value 0 if everything including the file contents and the file header has to be deleted
 //del_mode has the value 1 if only the file contents has to be deleted and the file header isn't
 
 void read_file(const char* file_name);
+
+void print_bk();
 
 #endif
