@@ -37,7 +37,7 @@ void init_manager()
         b.next = -1;
         b.prev = -1;
         b.alloc = 0;
-        b.size = m.size - sizeof(bk);
+        b.size = m.size;
         fseek(fp, sizeof(mem_space), SEEK_SET);
         fwrite(&b, sizeof(bk), 1, fp);
         fclose(fp);
@@ -55,7 +55,6 @@ int worst_block(FILE* fp, int r_size)
     int offset_cb = -1;
     int offset_index = sizeof(mem_space);
     int max_flag = 0;
-    printf("\n\n%d\n\n", sizeof(mem_space));
     fseek(fp, sizeof(mem_space), SEEK_SET);
     fread(&index, sizeof(bk), 1, fp);
 
@@ -126,7 +125,6 @@ void create_file(const char* filename, const char* filetype)
     if(block.size > (r_size + sizeof(bk)))
     {
         int offset_fb = offset_cb + sizeof(bk) + r_size;
-        printf("\n\nfb: %d cb: %d\n\n", offset_fb, offset_cb);
         bk free_block;
         free_block.next = block.next;
         block.next = offset_fb;
@@ -134,6 +132,7 @@ void create_file(const char* filename, const char* filetype)
         free_block.size = block.size - sizeof(bk) - r_size;
         free_block.alloc = 0;
         block.size = r_size;
+        m.size -= sizeof(bk);
         fseek(fp, offset_fb, SEEK_SET);
         fwrite(&free_block, sizeof(bk), 1, fp);
         fseek(fp, 0, SEEK_SET);
@@ -175,7 +174,6 @@ void create_file(const char* filename, const char* filetype)
         fread(&p_file, sizeof(file_header), 1, fp);
 
         int p_file_offset = m.file_offset;
-        printf("\n%d\n", p_file.next);
         while(p_file.next != -1)
         {
             p_file_offset = p_file.next;
@@ -194,7 +192,7 @@ void create_file(const char* filename, const char* filetype)
         fseek(fp, c_file_offset, SEEK_SET);
         fwrite(&file_h, sizeof(file_header), 1, fp);
     }
-    m.size -= (r_size + sizeof(bk));
+    m.size -= (r_size);
     fseek(fp, 0, SEEK_SET);
     fwrite(&m, sizeof(mem_space), 1, fp);
 
@@ -303,7 +301,6 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
                     if(block.size > (r_size + sizeof(bk)))
                     {
                         int offset_fb = offset_cb + sizeof(bk) + r_size;
-                        printf("\n\nfb: %d cb: %d\n\n", offset_fb, offset_cb);
                         bk free_block;
                         free_block.next = block.next;
                         block.next = offset_fb;
@@ -406,7 +403,6 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
                 
                 break;
             case 'a':
-                printf("\n IN APPEND OFFSET:%d\n", offset_file);
                 if(offset_file == -1)
                 {
                     edit_file(filename, filetype, s, 'w');
@@ -422,16 +418,12 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
                         offset_p_f = offset_file;
                         offset_file = f.next;
                     }
-                    printf("\n\nOFFSET OF PF: %d\n\n", offset_p_f);
                     file p_f;
                     fseek(fp, offset_p_f, SEEK_SET);
                     fread(&p_f, sizeof(file), 1, fp);
-                    printf("\nHEREERER\n");
                     int offset_cb = worst_block(fp, r_size);
-                    printf("\nHEREERER %d \n", offset_cb);
                     if(offset_cb != -1)
                     {
-                        printf("\nHEREERER\n");
                         bk block;
                         fseek(fp, offset_cb, SEEK_SET);
                         fread(&block, sizeof(bk), 1, fp);
@@ -457,7 +449,6 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
                         if(block.size > (r_size + sizeof(bk)))
                         {
                             int offset_fb = offset_cb + sizeof(bk) + r_size;
-                            printf("\n\nin append fb: %d cb: %d\n\n", offset_fb, offset_cb);
                             bk free_block;
                             free_block.next = block.next;
                             block.next = offset_fb;
@@ -491,14 +482,12 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
                     }
                     else if (size_of_free_blocks() > (t_size + no_of_free_blocks()*sizeof(file)))
                     {
-                        printf("\nHERE\n");
                         while (t_size > 0)
                         {
                             int offset_cb = worst_block(fp, 0);
                             bk block;
                             fseek(fp, offset_cb, SEEK_SET);
                             fread(&block, sizeof(bk), 1, fp);
-                            printf("\n\nappend loop\n\n");
                             int block_t_size = block.size - sizeof(file);
                             t_size -= block_t_size;
                             char* text = malloc(sizeof(char)*(block_t_size+1));
@@ -538,30 +527,27 @@ void edit_file(const char* filename, const char* filetype, char* s, char mode)
 }
 void check_block_integrity()
 {
-    printf("\ncbi\n");
     FILE* fp = fopen("file_manager.dat","rb");
-    int size = 0;
     bk block;
     fseek(fp, sizeof(mem_space), SEEK_SET);
     fread(&block, sizeof(bk), 1, fp);
 
     int offset_cb = block.next;
-    if(!block.alloc)  size+=block.size;
     printf("\nCBI alloc:%d size:%d next:%d prev:%d\n", block.alloc, block.size, block.next, block.prev);
     while (offset_cb != -1)
     {   
         fseek(fp, offset_cb, SEEK_SET);
         fread(&block, sizeof(bk), 1, fp);
-        if(!block.alloc)  size+=block.size;
+        if(block.alloc == 0)free_bk(offset_cb);
         printf("\nCBI alloc:%d size:%d next:%d prev:%d\n", block.alloc, block.size, block.next, block.prev);
         offset_cb = block.next;
     }
     fclose(fp);
+    update_m();
     return;
 }
 int size_of_free_blocks()
 {
-    printf("\nsof\n");
     FILE* fp = fopen("file_manager.dat","rb");
     int size = 0;
     bk block;
@@ -570,7 +556,6 @@ int size_of_free_blocks()
 
     int offset_cb = block.next;
     if(!block.alloc)  size+=block.size;
-    printf("\nSOF %d %d %d %d\n", block.alloc, block.size, block.next, block.prev);
     while (offset_cb != -1)
     {
         fseek(fp, offset_cb, SEEK_SET);
@@ -584,7 +569,6 @@ int size_of_free_blocks()
 
 int no_of_free_blocks()
 {
-    printf("\nnof\n");
     FILE* fp = fopen("file_manager.dat","rb");
     int no = 0;
     bk block;
@@ -618,7 +602,6 @@ void delete_all_fb(file_header f_head)
         int offset_file = f_head.start_offset;
         while(offset_file != -1)
         {   
-            printf("\nIN DELETE\n");
             int offset_bk = offset_file - sizeof(bk);
             fseek(fp, offset_file, SEEK_SET);
             fread(&f, sizeof(file), 1, fp);
@@ -629,17 +612,11 @@ void delete_all_fb(file_header f_head)
             fseek(fp, offset_bk, SEEK_SET);
             fwrite(&b, sizeof(bk), 1, fp);
 
-            mem_space m;
-            fseek(fp, 0, SEEK_SET);
-            fread(&m, sizeof(mem_space), 1, fp);
-            m.size += b.size;
-            printf("\n%d\n", m.size);
-            fseek(fp, 0, SEEK_SET);
-            fwrite(&m, sizeof(mem_space), 1, fp);
-
+            free_bk(offset_bk);
             offset_file = f.next;
         }
         fclose(fp);
+        update_m();
     }
 }
 void delete_file(const char* filename, const char* filetype)
@@ -673,9 +650,12 @@ void delete_file(const char* filename, const char* filetype)
         fread(&fh_block, sizeof(bk), 1, fp);
 
         fh_block.alloc = 0;
-
         fseek(fp, offset_f_h - sizeof(bk), SEEK_SET);
         fwrite(&fh_block, sizeof(bk), 1, fp);
+        if((offset_f_h - sizeof(bk)) != sizeof(mem_space))
+        free_bk(offset_f_h - sizeof(bk));
+        fseek(fp, 0, SEEK_SET);
+        fread(&m, sizeof(mem_space), 1, fp);
 
         if(f_head.prev != -1)
         {
@@ -703,7 +683,6 @@ void delete_file(const char* filename, const char* filetype)
             m.file_offset = f_head.next;
         }
         m.size += fh_block.size;
-        printf("\n%d\n", m.size);
         fseek(fp, 0, SEEK_SET);
         fwrite(&m, sizeof(mem_space), 1, fp);
         fclose(fp);
@@ -717,33 +696,96 @@ void delete_file(const char* filename, const char* filetype)
     
 }
 
-void delete_fb(int offset_f)
+// void delete_fb(int offset_f)
+// {
+//     FILE* fp = fopen("file_manager.dat", "rb+");
+//     bk block;
+//     fseek(fp, offset_f - sizeof(bk), SEEK_SET);
+//     fread(&block, sizeof(bk), 1, fp);
+//     block.alloc = 0;
+
+//     mem_space m;
+//     fseek(fp, 0, SEEK_SET);
+//     fread(&m, sizeof(mem_space), 1, fp);
+//     m.size += block.size;
+//     printf("\n%d\n", m.size);
+//     fseek(fp, 0, SEEK_SET);
+//     fwrite(&m, sizeof(mem_space), 1, fp);
+
+//     fclose(fp);
+
+// }
+void free_bk(int offset_cb)
 {
     FILE* fp = fopen("file_manager.dat", "rb+");
-    bk block;
-    fseek(fp, offset_f - sizeof(bk), SEEK_SET);
-    fread(&block, sizeof(bk), 1, fp);
-    block.alloc = 0;
-
-    mem_space m;
-    fseek(fp, 0, SEEK_SET);
-    fread(&m, sizeof(mem_space), 1, fp);
-    m.size += block.size;
-    printf("\n%d\n", m.size);
-    fseek(fp, 0, SEEK_SET);
-    fwrite(&m, sizeof(mem_space), 1, fp);
-
+    bk c_block, p_block, n_block;
+    fseek(fp, offset_cb, SEEK_SET);
+    fread(&c_block, sizeof(bk), 1, fp);
+    if(c_block.next != -1)
+    {
+        int offset_n = c_block.next;
+        fseek(fp, offset_n, SEEK_SET);
+        fread(&n_block, sizeof(bk), 1, fp);
+        if(n_block.alloc == 0)
+        {
+            c_block.next = n_block.next;
+            if(n_block.next != -1)
+            {
+                bk n_n_block;   
+                fseek(fp, n_block.next, SEEK_SET);
+                fread(&n_n_block, sizeof(bk), 1, fp);
+                n_n_block.prev = n_block.prev;
+                fseek(fp, n_block.next, SEEK_SET);
+                fwrite(&n_n_block, sizeof(bk), 1, fp);
+            }
+            c_block.size += n_block.size + sizeof(bk);
+        }
+    }
+    if(c_block.prev != -1)
+    {   
+        int offset_p = c_block.prev;
+        fseek(fp, offset_p, SEEK_SET);
+        fread(&p_block, sizeof(bk), 1, fp);
+        if(p_block.alloc == 0)
+        {
+            p_block.next = c_block.next;
+            if(c_block.next != -1)
+            {
+                fseek(fp, c_block.next, SEEK_SET);
+                fread(&n_block, sizeof(bk), 1, fp);
+                n_block.prev = c_block.prev;
+                fseek(fp, c_block.next, SEEK_SET);
+                fwrite(&n_block, sizeof(bk), 1, fp);
+            }
+            p_block.size += c_block.size + sizeof(bk);
+        }
+        fseek(fp, offset_p, SEEK_SET);
+        fwrite(&p_block, sizeof(bk), 1, fp); 
+    }
+    fseek(fp, offset_cb, SEEK_SET);
+    fwrite(&c_block, sizeof(bk), 1, fp);
     fclose(fp);
-
+    update_m();
+    return;
 }
-
 void free_space()
 {
-    FILE * fp = fopen("file_manager.dat", "r");
+    FILE *fp = fopen("file_manager.dat", "r");
     mem_space m;
     fseek(fp, 0, SEEK_SET);
     fread(&m, sizeof(mem_space), 1, fp);
-    printf("\n FREE SPACE: %d\n", m.size);
+    printf("\nFREE SPACE: %d\n", m.size);
+    fclose(fp);
+}
+void update_m()
+{
+    FILE *fp = fopen("file_manager.dat", "rb+");
+    mem_space m;
+    fseek(fp, 0, SEEK_SET);
+    fread(&m, sizeof(mem_space), 1, fp);
+    m.size = size_of_free_blocks();
+    fseek(fp, 0, SEEK_SET);
+    fwrite(&m, sizeof(mem_space), 1, fp);
     fclose(fp);
 }
 void print_file_structure()

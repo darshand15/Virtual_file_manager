@@ -56,6 +56,7 @@ int main()
             printf("\nEnter File Ext: ");
             scanf("%s", file_ext);
             delete_file(file_name, file_ext);
+            break;
         case 6:
             check_block_integrity();
             break;

@@ -63,4 +63,6 @@ int no_of_free_blocks();
 int size_of_free_blocks();
 void check_block_integrity();
 void free_space();
+void free_bk(int offset_cb);
+void update_m();
 #endif
