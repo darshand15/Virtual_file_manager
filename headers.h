@@ -50,11 +50,11 @@ int file_exists(const char* file_name);
 
 void init_space(char **temp, int n);
 
-void init_manager();
+char* init_manager();
 
 int best_fit(int req_size);
 
-void create_file(const char* file_name);
+int create_file(const char* file_name);
 
 void insert_into_file(const char* file_name,char *content,char mode);
 //mode is 'a' if append, 'w' if write mode
@@ -70,5 +70,9 @@ int del_file(const char* file_name,int del_mode);
 void read_file(const char* file_name);
 
 void print_bk();
+
+int check_file_exists(const char* file_name);
+
+
 
 #endif
