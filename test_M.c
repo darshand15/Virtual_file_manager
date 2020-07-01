@@ -109,7 +109,7 @@ int worst_block(FILE* fp, int r_size)
 }
 
 
-void create_file(const char* filename, const char* filetype)
+int create_file(const char* filename, const char* filetype)
 {
     FILE* fp = fopen("file_manager.dat", "rb+");
     mem_space m;
@@ -118,93 +118,129 @@ void create_file(const char* filename, const char* filetype)
     int r_size = sizeof(file_header);
 
     int offset_cb = worst_block(fp, r_size);
-    bk block;
-    fseek(fp, offset_cb, SEEK_SET);
-    fread(&block, sizeof(bk), 1, fp);
-    
-    if(block.size > (r_size + sizeof(bk)))
+
+    if(offset_cb == -1)
     {
-        int offset_fb = offset_cb + sizeof(bk) + r_size;
-        bk free_block;
-        free_block.next = block.next;
-        block.next = offset_fb;
-        free_block.prev = offset_cb;
-        free_block.size = block.size - sizeof(bk) - r_size;
-        free_block.alloc = 0;
-        block.size = r_size;
-        m.size -= sizeof(bk);
-        fseek(fp, offset_fb, SEEK_SET);
-        fwrite(&free_block, sizeof(bk), 1, fp);
+        return -1;
+    }
+    else
+    {   
+        bk block;
+        fseek(fp, offset_cb, SEEK_SET);
+        fread(&block, sizeof(bk), 1, fp);
+
+        if(block.size > (r_size + sizeof(bk)))
+        {
+            int offset_fb = offset_cb + sizeof(bk) + r_size;
+            bk free_block;
+            free_block.next = block.next;
+            block.next = offset_fb;
+            free_block.prev = offset_cb;
+            free_block.size = block.size - sizeof(bk) - r_size;
+            free_block.alloc = 0;
+            block.size = r_size;
+            m.size -= sizeof(bk);
+            fseek(fp, offset_fb, SEEK_SET);
+            fwrite(&free_block, sizeof(bk), 1, fp);
+            fseek(fp, 0, SEEK_SET);
+            fwrite(&m, sizeof(mem_space), 1, fp);
+        }
+        if(m.file_offset == -1)
+        {
+            m.file_offset = offset_cb + sizeof(bk);
+            file_header file_h;
+            file_h.next = -1;
+            file_h.file_id = 0;
+            strcpy(file_h.file_name, filename);
+            strcpy(file_h.file_type, filetype);
+            file_h.start_offset = -1;
+            file_h.end_offset = -1;
+            file_h.prev = -1;
+            block.alloc = 1;
+
+            fseek(fp, offset_cb, SEEK_SET);
+            fwrite(&block, sizeof(bk), 1, fp);
+
+            fseek(fp, m.file_offset, SEEK_SET);
+            fwrite(&file_h, sizeof(file_header), 1, fp);
+
+            fseek(fp, 0, SEEK_SET);
+            fwrite(&m, sizeof(mem_space), 1, fp);
+        }
+        else
+        {
+            file_header file_h;
+            int c_file_offset = offset_cb + sizeof(bk);
+            file_h.file_id = 0;
+            strcpy(file_h.file_name, filename);
+            strcpy(file_h.file_type, filetype);
+            file_h.start_offset = -1;
+            file_h.end_offset = -1;
+            file_header p_file;
+            fseek(fp, m.file_offset, SEEK_SET);
+            fread(&p_file, sizeof(file_header), 1, fp);
+
+            int p_file_offset = m.file_offset;
+            while(p_file.next != -1)
+            {
+                p_file_offset = p_file.next;
+                fseek(fp, p_file_offset, SEEK_SET);
+                fread(&p_file, sizeof(file_header), 1, fp);
+            }
+            p_file.next = c_file_offset;
+            file_h.file_id = p_file.file_id + 1;
+            file_h.prev = p_file_offset;
+            file_h.next = -1;
+            block.alloc = 1;
+
+            fseek(fp, p_file_offset, SEEK_SET);
+            fwrite(&p_file, sizeof(file_header), 1, fp);
+
+            fseek(fp, c_file_offset, SEEK_SET);
+            fwrite(&file_h, sizeof(file_header), 1, fp);
+        }
+        m.size -= (r_size);
         fseek(fp, 0, SEEK_SET);
         fwrite(&m, sizeof(mem_space), 1, fp);
-    }
-    if(m.file_offset == -1)
-    {
-        m.file_offset = offset_cb + sizeof(bk);
-        file_header file_h;
-        file_h.next = -1;
-        file_h.file_id = 0;
-        strcpy(file_h.file_name, filename);
-        strcpy(file_h.file_type, filetype);
-        file_h.start_offset = -1;
-        file_h.end_offset = -1;
-        file_h.prev = -1;
-        block.alloc = 1;
 
         fseek(fp, offset_cb, SEEK_SET);
         fwrite(&block, sizeof(bk), 1, fp);
-
-        fseek(fp, m.file_offset, SEEK_SET);
-        fwrite(&file_h, sizeof(file_header), 1, fp);
-
-        fseek(fp, 0, SEEK_SET);
-        fwrite(&m, sizeof(mem_space), 1, fp);
+        fclose(fp);
+        return 1;
     }
-    else
-    {
-        file_header file_h;
-        int c_file_offset = offset_cb + sizeof(bk);
-        file_h.file_id = 0;
-        strcpy(file_h.file_name, filename);
-        strcpy(file_h.file_type, filetype);
-        file_h.start_offset = -1;
-        file_h.end_offset = -1;
-        file_header p_file;
-        fseek(fp, m.file_offset, SEEK_SET);
-        fread(&p_file, sizeof(file_header), 1, fp);
-
-        int p_file_offset = m.file_offset;
-        while(p_file.next != -1)
-        {
-            p_file_offset = p_file.next;
-            fseek(fp, p_file_offset, SEEK_SET);
-            fread(&p_file, sizeof(file_header), 1, fp);
-        }
-        p_file.next = c_file_offset;
-        file_h.file_id = p_file.file_id + 1;
-        file_h.prev = p_file_offset;
-        file_h.next = -1;
-        block.alloc = 1;
-
-        fseek(fp, p_file_offset, SEEK_SET);
-        fwrite(&p_file, sizeof(file_header), 1, fp);
-
-        fseek(fp, c_file_offset, SEEK_SET);
-        fwrite(&file_h, sizeof(file_header), 1, fp);
-    }
-    m.size -= (r_size);
-    fseek(fp, 0, SEEK_SET);
-    fwrite(&m, sizeof(mem_space), 1, fp);
-
-    fseek(fp, offset_cb, SEEK_SET);
-    fwrite(&block, sizeof(bk), 1, fp);
-    fclose(fp);
 }
 
-// void create_f_b(file_header f_head, int r_size)
-// {
-
-// }
+int check_file_exists(const char* filename, const char* filetype)
+{
+    FILE *fp = fopen("file_manager.dat","rb");
+    mem_space m;
+    fseek(fp,0,SEEK_SET);
+    fread(&m,sizeof(mem_space),1,fp);
+    if(m.file_offset == -1)
+    {
+        return 0;
+    }
+    file_header f_head;
+    fseek(fp, m.file_offset, SEEK_SET);
+    fread(&f_head, sizeof(file_header), 1, fp);
+    int offset_f_h = m.file_offset;
+    while(f_head.next != -1)
+    {
+        if(!strcmp(f_head.file_name, filename) && !strcmp(f_head.file_type, filetype))
+        {
+            return 1;
+            break;
+        }
+        offset_f_h = f_head.next;
+        fseek(fp, f_head.next, SEEK_SET);
+        fread(&f_head, sizeof(file_header), 1, fp);
+    }
+    if(!strcmp(f_head.file_name, filename) && !strcmp(f_head.file_type, filetype))
+    {
+        return 1;
+    }
+    return 0;
+}
 
 void edit_file(const char* filename, const char* filetype, char* s, char mode)
 {
@@ -538,8 +574,26 @@ void check_block_integrity()
     {   
         fseek(fp, offset_cb, SEEK_SET);
         fread(&block, sizeof(bk), 1, fp);
-        if(block.alloc == 0)free_bk(offset_cb);
         printf("\nCBI alloc:%d size:%d next:%d prev:%d\n", block.alloc, block.size, block.next, block.prev);
+        offset_cb = block.next;
+    }
+    fclose(fp);
+    return;
+}
+
+void verify_free_bk()
+{
+    FILE* fp = fopen("file_manager.dat","rb");
+    bk block;
+    fseek(fp, sizeof(mem_space), SEEK_SET);
+    fread(&block, sizeof(bk), 1, fp);
+
+    int offset_cb = block.next;
+    while (offset_cb != -1)
+    {   
+        fseek(fp, offset_cb, SEEK_SET);
+        fread(&block, sizeof(bk), 1, fp);
+        if(block.alloc == 0)free_bk(offset_cb);
         offset_cb = block.next;
     }
     fclose(fp);
@@ -626,8 +680,6 @@ void delete_file(const char* filename, const char* filetype)
     mem_space m;
     fseek(fp, 0, SEEK_SET);
     fread(&m, sizeof(mem_space), 1, fp);
-    // fseek(fp, m.file_offset, SEEK_SET);
-    // fread(&f_head, sizeof(file_header), 1, fp);
     int found = 0, offset_f_h = m.file_offset;
     while(offset_f_h != -1)
     {   
@@ -686,6 +738,7 @@ void delete_file(const char* filename, const char* filetype)
         fseek(fp, 0, SEEK_SET);
         fwrite(&m, sizeof(mem_space), 1, fp);
         fclose(fp);
+        verify_free_bk();
     }
     else
     {

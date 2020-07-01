@@ -51,7 +51,7 @@ int exists(const char *fname);
 void init_space(char** temp, int n);
 void init_manager();
 int worst_block(FILE* fp, int r_size);
-void create_file(const char* filename, const char* filetype);
+int create_file(const char* filename, const char* filetype);
 void insert_into_file(const char* filename, const char* filetype, char* temp);
 void print_file_structure();
 void create_f_b(file_header f_head, int r_size);
@@ -65,4 +65,6 @@ void check_block_integrity();
 void free_space();
 void free_bk(int offset_cb);
 void update_m();
+void verify_free_bk();
+int check_file_exists(const char* filename, const char* filetype);
 #endif
