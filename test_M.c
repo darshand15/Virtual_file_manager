@@ -975,11 +975,53 @@ int open_using_ext_app(const char* filename, const char* filetype, const char* a
         {
             system("rename  \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.dat\" temp.txt");
             system("notepad \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.txt\"");
+            printf("\nEnter 1 if you want to overwrite the current file contents else 0\n");
+            int c;
+            scanf("%d", &c);
+            if(c)
+            {
+                fp_temp = fopen("temp.txt", "rb");
+                fseek(fp_temp, 0, SEEK_END); 
+                int size = ftell(fp_temp);
+                fseek(fp_temp, 0, SEEK_SET);
+                char* contents = malloc(sizeof(char)*(size+1));
+                if(contents == NULL)printf("\nJAI\n");
+                fread(contents, sizeof(char), size, fp_temp);
+                contents[size] = '\0';
+                edit_file(filename, filetype, contents, 'w');
+                fclose(fp_temp);
+                remove("temp.txt");
+            }
+            else
+            {
+                remove("temp.txt");
+            }
+            
         }
         else if (strcmp(filetype, "jpg") == 0)
         {
             system("rename  \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.dat\" temp.jpg");
             system("mspaint \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.jpg\"");
+            printf("\nEnter 1 if you want to overwrite the current file contents else 0\n");
+            int c;
+            scanf("%d", &c);
+            if(c)
+            {
+                fp_temp = fopen("temp.jpg", "rb");
+                fseek(fp_temp, 0, SEEK_END); 
+                int size = ftell(fp_temp);
+                fseek(fp_temp, 0, SEEK_SET);
+                char* contents = malloc(sizeof(char)*(size));
+                if(contents == NULL)printf("\nJAI\n");
+                fread(contents, sizeof(char), size, fp_temp);
+                edit_file_2(filename, filetype, contents, 'w', size);
+                fclose(fp_temp);
+                remove("temp.jpg");
+            }
+            else
+            {
+                remove("temp.jpg");
+            }
 
         }
         
@@ -1014,16 +1056,10 @@ int open_existing_file(char* file_path, char* filename, char* filetype)
     create_file(filename, filetype);
     fseek(fp_temp, 0, SEEK_END); 
     int size = ftell(fp_temp);
-    printf("\n%d\n", size);
     fseek(fp_temp, 0, SEEK_SET);
     char* contents = malloc(sizeof(char)*(size));
     if(contents == NULL)printf("\nJAI\n");
     fread(contents, sizeof(char), size, fp_temp);
-    // contents[size] = '\0';
-    // for(int i=0; i<size; i++)
-    // {
-    //     printf("\n%c\n", contents[i]);
-    // }
     edit_file_2(filename, filetype, contents, 'w', size);
     fclose(fp_temp);
     return 1;

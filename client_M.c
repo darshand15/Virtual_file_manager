@@ -3,11 +3,10 @@
 int main()
 {
     int c;
-    printf("%d\n\n",sizeof(int));
     init_manager();
     while(1)
     {
-        printf("1. Create File\n2. Print the current file structure\n3. Edit\n4. Free Space Left\n5. Delete File\n6. Check Block Integrity\n7. Open Using External Application\n8. Open Existing File\n");
+        printf("\n1. Create File\n2. Print the current file structure\n3. Edit\n4. Free Space Left\n5. Delete File\n6. Check Block Integrity\n7. Open Using External Application\n8. Open Existing File\n");
         scanf("%d", &c);
         char *file_name = malloc(sizeof(char)*25);
         char *file_ext = malloc(sizeof(char)*8);
