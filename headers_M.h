@@ -4,6 +4,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include <windows.h>
 
 
 
@@ -52,11 +53,11 @@ void init_space(char** temp, int n);
 void init_manager();
 int worst_block(FILE* fp, int r_size);
 int create_file(const char* filename, const char* filetype);
-void insert_into_file(const char* filename, const char* filetype, char* temp);
 void print_file_structure();
 void create_f_b(file_header f_head, int r_size);
 void delete_all_fb(file_header f_head);
 void edit_file(const char* filename, const char* filetype, char* s, char mode);
+void edit_file_2(const char* filename, const char* filetype, char* s, char mode, int size);
 void delete_file(const char* filename, const char* filetype);
 void delete_fb(int offset_f);
 int no_of_free_blocks();
@@ -67,4 +68,6 @@ void free_bk(int offset_cb);
 void update_m();
 void verify_free_bk();
 int check_file_exists(const char* filename, const char* filetype);
+int open_using_ext_app(const char* filename, const char* filetype, const char* app);
+int open_existing_file(char* file_path, char* filename, char* filetype);
 #endif

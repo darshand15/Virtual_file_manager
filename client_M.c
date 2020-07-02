@@ -7,7 +7,7 @@ int main()
     init_manager();
     while(1)
     {
-        printf("1. Create File\n2. Print the current file structure\n3. Edit\n4. Free Space Left\n5. Delete File\n6. Check Block Integrity\n");
+        printf("1. Create File\n2. Print the current file structure\n3. Edit\n4. Free Space Left\n5. Delete File\n6. Check Block Integrity\n7. Open Using External Application\n8. Open Existing File\n");
         scanf("%d", &c);
         char *file_name = malloc(sizeof(char)*25);
         char *file_ext = malloc(sizeof(char)*8);
@@ -123,6 +123,39 @@ int main()
             break;
         case 6:
             check_block_integrity();
+            break;
+        case 7:
+            printf("\nEnter File Name: ");
+            scanf("%s", file_name);
+            printf("\nEnter File Ext: ");
+            scanf("%s", file_ext);
+            char* app = malloc(sizeof(char)*256);
+            printf("\nEnter Application path (NOT USED FOR NOW): ");
+            scanf("%s", app);
+            open_using_ext_app(file_name, file_ext, app);
+            break;
+        case 8:
+            printf("\nEnter File Path: ");
+            char* file_path = malloc(sizeof(char)*256);
+            scanf("%s", file_path);
+            printf("\nEnter 1 if you want to use the same file name else 0\n");
+            int c;
+            scanf("%d", &c);
+            if(c)
+            {
+                file_name[0] = '\0';
+                file_ext[0] = '\0';
+                open_existing_file(file_path, file_name, file_ext);
+            }
+            else
+            {
+                printf("\nEnter File Name: ");
+                scanf("%s", file_name);
+                printf("\nEnter File Ext: ");
+                scanf("%s", file_ext);
+                open_existing_file(file_path, file_name, file_ext);
+            }
+            free(file_path);
             break;
         default:
             break;
