@@ -129,18 +129,29 @@ int main()
             printf("\nEnter File Ext: ");
             scanf("%s", file_ext);
             char* app = malloc(sizeof(char)*256);
-            printf("\nEnter Application path (NOT USED FOR NOW): ");
-            scanf("%s", app);
+            printf("\nEnter 1 if you want to use the default application else 0\n");
+            int c;
+            scanf("%d", &c);
+            if(c)
+            {
+                app[0] = '\0';
+            }
+            else
+            {
+                printf("\nEnter Application path: ");
+                scanf("%s", app);
+            }
             open_using_ext_app(file_name, file_ext, app);
+            free(app);
             break;
         case 8:
             printf("\nEnter File Path: ");
             char* file_path = malloc(sizeof(char)*256);
             scanf("%s", file_path);
             printf("\nEnter 1 if you want to use the same file name else 0\n");
-            int c;
-            scanf("%d", &c);
-            if(c)
+            int d;
+            scanf("%d", &d);
+            if(d)
             {
                 file_name[0] = '\0';
                 file_ext[0] = '\0';

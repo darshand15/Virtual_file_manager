@@ -971,43 +971,83 @@ int open_using_ext_app(const char* filename, const char* filetype, const char* a
             offset_file = f.next;
         }
         fclose(fp_temp);
-        if(strcmp(filetype, "txt") == 0)
-        {
-            system("rename  \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.dat\" temp.txt");
-            system("notepad \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.txt\"");
-            printf("\nEnter 1 if you want to overwrite the current file contents else 0\n");
-            int c;
-            scanf("%d", &c);
-            if(c)
+        if(app[0]=='\0')
+        {   
+            if(strcmp(filetype, "txt") == 0)
             {
-                fp_temp = fopen("temp.txt", "rb");
-                fseek(fp_temp, 0, SEEK_END); 
-                int size = ftell(fp_temp);
-                fseek(fp_temp, 0, SEEK_SET);
-                char* contents = malloc(sizeof(char)*(size+1));
-                if(contents == NULL)printf("\nJAI\n");
-                fread(contents, sizeof(char), size, fp_temp);
-                contents[size] = '\0';
-                edit_file(filename, filetype, contents, 'w');
-                fclose(fp_temp);
-                remove("temp.txt");
+                system("rename  \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.dat\" temp.txt");
+                system("notepad \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.txt\"");
+                printf("\nEnter 1 if you want to overwrite the current file contents else 0\n");
+                int c;
+                scanf("%d", &c);
+                if(c)
+                {
+                    fp_temp = fopen("temp.txt", "rb");
+                    fseek(fp_temp, 0, SEEK_END); 
+                    int size = ftell(fp_temp);
+                    fseek(fp_temp, 0, SEEK_SET);
+                    char* contents = malloc(sizeof(char)*(size+1));
+                    if(contents == NULL)printf("\nJAI\n");
+                    fread(contents, sizeof(char), size, fp_temp);
+                    contents[size] = '\0';
+                    edit_file(filename, filetype, contents, 'w');
+                    fclose(fp_temp);
+                    remove("temp.txt");
+                }
+                else
+                {
+                    remove("temp.txt");
+                }
+                
             }
-            else
+            else if (strcmp(filetype, "jpg") == 0)
             {
-                remove("temp.txt");
+                system("rename  \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.dat\" temp.jpg");
+                system("mspaint \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.jpg\"");
+                printf("\nEnter 1 if you want to overwrite the current file contents else 0\n");
+                int c;
+                scanf("%d", &c);
+                if(c)
+                {
+                    fp_temp = fopen("temp.jpg", "rb");
+                    fseek(fp_temp, 0, SEEK_END); 
+                    int size = ftell(fp_temp);
+                    fseek(fp_temp, 0, SEEK_SET);
+                    char* contents = malloc(sizeof(char)*(size));
+                    if(contents == NULL)printf("\nJAI\n");
+                    fread(contents, sizeof(char), size, fp_temp);
+                    edit_file_2(filename, filetype, contents, 'w', size);
+                    fclose(fp_temp);
+                    remove("temp.jpg");
+                }
+                else
+                {
+                    remove("temp.jpg");
+                }
             }
-            
         }
-        else if (strcmp(filetype, "jpg") == 0)
+        else
         {
-            system("rename  \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.dat\" temp.jpg");
-            system("mspaint \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.jpg\"");
+            // STARTUPINFO si;
+            // PROCESS_INFORMATION pi;
+            // ZeroMemory(&si, sizeof(si));
+            // si.cb = sizeof(si);
+            // ZeroMemory(&pi, sizeof(pi));
+            char cmd_line[256];
+            snprintf(cmd_line, sizeof(cmd_line), "rename  \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.dat\" temp.%s", filetype);
+            system(cmd_line);
+            snprintf(cmd_line, sizeof(cmd_line), "%s \"C:\\Users\\mayur\\Desktop\\PES\\PES - 4\\Virtual_file_manager - Copy\\temp.%s\"", app, filetype);
+            system(cmd_line);
+
             printf("\nEnter 1 if you want to overwrite the current file contents else 0\n");
             int c;
             scanf("%d", &c);
+            char t_file[64];
+            snprintf(t_file, sizeof(t_file), "temp.%s", filetype);
             if(c)
             {
-                fp_temp = fopen("temp.jpg", "rb");
+
+                fp_temp = fopen(t_file, "rb");
                 fseek(fp_temp, 0, SEEK_END); 
                 int size = ftell(fp_temp);
                 fseek(fp_temp, 0, SEEK_SET);
@@ -1016,16 +1056,13 @@ int open_using_ext_app(const char* filename, const char* filetype, const char* a
                 fread(contents, sizeof(char), size, fp_temp);
                 edit_file_2(filename, filetype, contents, 'w', size);
                 fclose(fp_temp);
-                remove("temp.jpg");
+                remove(t_file);
             }
             else
             {
-                remove("temp.jpg");
+                remove(t_file);
             }
-
         }
-        
-
         return 1;
     }
     else
@@ -1033,7 +1070,6 @@ int open_using_ext_app(const char* filename, const char* filetype, const char* a
         printf("\nNo such file found\n");
         return -1;
     }
-    
 }
 
 int open_existing_file(char* file_path, char* filename, char* filetype)
@@ -1051,8 +1087,8 @@ int open_existing_file(char* file_path, char* filename, char* filetype)
     }
     token = strtok(p_token, s_2);
     token = strtok(NULL, s_2);
-    strcpy(filename, p_token);
-    strcpy(filetype, token);
+    if(filename[0] == '\0')strcpy(filename, p_token);
+    if(filetype[0] == '\0')strcpy(filetype, token);
     create_file(filename, filetype);
     fseek(fp_temp, 0, SEEK_END); 
     int size = ftell(fp_temp);
@@ -1066,11 +1102,6 @@ int open_existing_file(char* file_path, char* filename, char* filetype)
 
 }
 
-// #include <windows.h>
-
-// #include <stdio.h>
-
- 
 
 // void main(void)
 
@@ -1172,22 +1203,6 @@ int open_existing_file(char* file_path, char* filename, char* filetype)
             int offset_file = f_head.start_offset;
             switch (mode)
             {
-            // case 'r':
-            //     while(offset_file != -1)
-            //     {
-            //         file f;
-            //         fseek(fp, offset_file, SEEK_SET);
-            //         fread(&f, sizeof(file), 1, fp);
-            //         int t_size = f.end_of_block - offset_file - sizeof(file);
-            //         char* temp = malloc(sizeof(char)*(t_size+1));
-            //         temp[t_size] = '\0'; // JUST IN CASE
-            //         fseek(fp, offset_file + sizeof(file), SEEK_SET);
-            //         fread(temp, sizeof(char), t_size, fp);
-            //         printf("\n(FILE BLOCK) %s \n", temp);
-            //         offset_file = f.next;
-            //     }
-            //     printf("\n file contents printed\n");
-            //     break;
             case 'w':
                 fclose(fp);
                 delete_all_fb(f_head);
@@ -1328,110 +1343,6 @@ int open_existing_file(char* file_path, char* filename, char* filetype)
                 }
                 
                 break;
-            // case 'a':
-            //     if(offset_file == -1)
-            //     {
-            //         edit_file(filename, filetype, s, 'w');
-            //     }
-            //     else
-            //     {
-            //         int offset_p_f = 0;
-            //         while(offset_file != -1)
-            //         {
-            //             file f;
-            //             fseek(fp, offset_file, SEEK_SET);
-            //             fread(&f, sizeof(file), 1, fp);
-            //             offset_p_f = offset_file;
-            //             offset_file = f.next;
-            //         }
-            //         file p_f;
-            //         fseek(fp, offset_p_f, SEEK_SET);
-            //         fread(&p_f, sizeof(file), 1, fp);
-            //         int offset_cb = worst_block(fp, r_size);
-            //         if(offset_cb != -1)
-            //         {
-            //             bk block;
-            //             fseek(fp, offset_cb, SEEK_SET);
-            //             fread(&block, sizeof(bk), 1, fp);
-            //             file f;
-            //             f.next = -1;
-            //             f.prev = offset_p_f;
-            //             if(block.prev == -1)
-            //             {
-            //                 offset_cb = sizeof(mem_space);
-            //             }
-            //             else
-            //             {
-            //                 bk prev_block;
-            //                 fseek(fp, block.prev, SEEK_SET);
-            //                 fread(&prev_block, sizeof(bk), 1, fp);
-            //                 offset_cb = prev_block.next;
-            //             }
-            //             offset_file = offset_cb + sizeof(bk);
-            //             f.end_of_block = offset_file + r_size;
-            //             f_head.end_offset = f.end_of_block;
-            //             p_f.next = offset_file;
-
-            //             if(block.size > (r_size + sizeof(bk)))
-            //             {
-            //                 int offset_fb = offset_cb + sizeof(bk) + r_size;
-            //                 bk free_block;
-            //                 free_block.next = block.next;
-            //                 block.next = offset_fb;
-            //                 free_block.prev = offset_cb;
-            //                 free_block.size = block.size - sizeof(bk) - r_size;
-            //                 free_block.alloc = 0;
-            //                 block.size = r_size;
-            //                 fseek(fp, offset_fb, SEEK_SET);
-            //                 fwrite(&free_block, sizeof(bk), 1, fp);
-            //                 fseek(fp, offset_cb, SEEK_SET);
-            //                 fwrite(&block, sizeof(bk), 1, fp);
-            //             }
-            //             block.alloc = 1;
-            //             fseek(fp, offset_cb, SEEK_SET);
-            //             fwrite(&block, sizeof(bk), 1, fp);
-            //             fseek(fp, offset_f_h, SEEK_SET);
-            //             fwrite(&f_head, sizeof(file_header), 1, fp);
-
-            //             fseek(fp, offset_p_f, SEEK_SET);
-            //             fwrite(&p_f, sizeof(file), 1, fp);
-
-            //             fseek(fp, offset_file, SEEK_SET);
-            //             fwrite(&f, sizeof(file), 1, fp);
-
-            //             fseek(fp, offset_file + sizeof(file), SEEK_SET);
-            //             fwrite(s, sizeof(char), t_size, fp);
-
-            //             m.size -= (r_size + sizeof(bk));
-            //             fseek(fp, 0, SEEK_SET);
-            //             fwrite(&m, sizeof(mem_space), 1, fp);
-            //         }
-            //         else if (size_of_free_blocks() > (t_size + no_of_free_blocks()*sizeof(file)))
-            //         {
-            //             while (t_size > 0)
-            //             {
-            //                 int offset_cb = worst_block(fp, 0);
-            //                 bk block;
-            //                 fseek(fp, offset_cb, SEEK_SET);
-            //                 fread(&block, sizeof(bk), 1, fp);
-            //                 int block_t_size = block.size - sizeof(file);
-            //                 t_size -= block_t_size;
-            //                 char* text = malloc(sizeof(char)*(block_t_size+1));
-            //                 strncpy(text, s, block_t_size);
-            //                 text[block_t_size] = '\0';
-            //                 edit_file(filename, filetype, text, 'a');
-            //                 free(text);
-            //             }
-            //         }
-            //         else
-            //         {
-            //             printf("\nNo space availabe\n");
-            //             fclose(fp);
-            //             return;
-            //         }
-                                       
-            //     }
-            //     break;
             default:break;
             }
         }
